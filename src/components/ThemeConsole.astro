@@ -231,7 +231,7 @@ const presetCfgs = presets.map((pr) => {
         const attrKeys = ['data-style','data-hero','data-nav','data-menu','data-burger','data-banner','data-corners','data-bg','data-cards','data-density','data-cursor','data-motion'];
         const attrs = attrKeys.filter((a) => root.hasAttribute(a)).map((a) => `${a}="${root.getAttribute(a)}"`).join(' ') || '(all defaults)';
         const bodyCss = vars.map((v) => `  ${v}: ${cs.getPropertyValue(v).trim()};`).join('\n');
-        const out = `/* bwj95 web-studio — design tokens */\n/* preset → <html ${attrs}> */\n:root {\n${bodyCss}\n}`;
+        const out = `/* design tokens — exported from the customizer */\n/* preset → <html ${attrs}> */\n:root {\n${bodyCss}\n}`;
         const ta = document.getElementById('consoleOut') as HTMLTextAreaElement | null;
         if (ta) { ta.value = out; ta.hidden = false; ta.scrollIntoView({ block: 'nearest' }); }
         try {
