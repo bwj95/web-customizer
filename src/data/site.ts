@@ -29,24 +29,24 @@ export const showcase = [
 // What can be bought / hired — the sales surface (customization-focused).
 export const offerings = [
   {
-    title: 'Pick a look, I build it',
-    price: 'from $600',
+    title: 'Visual Preset Blueprint',
+    price: 'Standard Token Set',
     blurb:
-      'Start from any preset in the console, tell me the vibe, and I ship it — designed, built, and live on your domain. Fast, accessible, SEO-ready.',
-    cta: 'Start a build',
+      'Configure layout patterns, responsive rules, corner ratios, and font scales from any console preset to establish a design system baseline.',
+    cta: 'Configure baseline',
   },
   {
-    title: 'Fully custom design',
-    price: 'project-based',
+    title: 'Bespoke Design System',
+    price: 'Custom Token Spec',
     blurb:
-      'A one-of-a-kind site with its own vibe, layout, type and motion — everything you see here is a starting point, not a limit.',
-    cta: 'Scope a project',
+      'Develop custom token sets, typography curves, custom WebGL canvas simulations, and motion dynamics tailored to a specific brand system.',
+    cta: 'Draft system spec',
   },
   {
-    title: 'Design system & handoff',
-    price: 'let’s talk',
+    title: 'CSS/JSON Token Export',
+    price: 'Raw CSS/JSON',
     blurb:
-      'Want just the tokens? I hand you a clean, documented CSS/design-token system your team can build on — the same engine that powers this page.',
-    cta: 'Talk tokens',
+      'Extract the active configurations directly from the theme console as documented, portable CSS variables or JSON theme specifications.',
+    cta: 'Copy design tokens',
   },
 ];

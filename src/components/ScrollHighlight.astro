@@ -1,0 +1,140 @@
+---
+// ScrollHighlight: Editorial text overlay where lines/phrases light up as
+// they cross the center of the viewport and dim when they leave.
+---
+<div class="scroll-hl-section" id="scrollHlSection">
+  <div class="wrap scroll-hl-container">
+    <p class="eyebrow" data-reveal>bespoke_philosophy</p>
+    <div class="hl-paragraph" id="hlParagraph">
+      <span class="hl-phrase">We build websites that don't just sit on a domain.</span>
+      <span class="hl-phrase">We craft custom-calibrated digital engines.</span>
+      <span class="hl-phrase">Bespoke code. Zero templates. Sub-millisecond loading.</span>
+      <span class="hl-phrase">Every interaction, hover, and responsive breakpoint is engineered.</span>
+      <span class="hl-phrase">Take the controls. Restyle the core. Own your presence.</span>
+    </div>
+  </div>
+</div>
+
+<style>
+  .scroll-hl-section {
+    padding-block: clamp(5rem, 12vw, 10rem);
+    background: rgba(0, 0, 0, 0.15);
+    border-block: 1px solid var(--border);
+    position: relative;
+  }
+  :root[data-style="brutalist"] .scroll-hl-section {
+    border-block: 2px solid var(--text);
+    background: transparent;
+  }
+  :root[data-style="editorial"] .scroll-hl-section {
+    background: rgba(0, 0, 0, 0.02);
+  }
+
+  .scroll-hl-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: flex-start;
+  }
+
+  .hl-paragraph {
+    display: flex;
+    flex-direction: column;
+    gap: clamp(0.7rem, 2vw, 1.2rem);
+    width: 100%;
+    max-width: 980px;
+  }
+
+  .hl-phrase {
+    font-family: var(--font-display);
+    font-size: clamp(1.8rem, 4.8vw, 3.2rem);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--text-faint);
+    transition: color 0.45s cubic-bezier(0.2, 0.8, 0.2, 1);
+    will-change: color;
+  }
+
+  /* Active glow highlight state */
+  .hl-phrase.active {
+    color: var(--text);
+  }
+
+  /* Accent highlights depending on active style */
+  :root:not([data-style]) .hl-phrase.active,
+  :root[data-style="aurora"] .hl-phrase.active,
+  :root[data-style="kinetic"] .hl-phrase.active {
+    background: var(--spectrum);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  :root[data-style="neon"] .hl-phrase.active {
+    color: #00f5ff;
+    text-shadow: 0 0 15px rgba(0, 245, 255, 0.7);
+  }
+
+  :root[data-style="cyber"] .hl-phrase.active {
+    color: #00ff9f;
+    text-shadow: 0 0 10px rgba(0, 255, 159, 0.5);
+  }
+
+  :root[data-style="editorial"] .hl-phrase.active {
+    color: var(--accent);
+  }
+
+  :root[data-style="brutalist"] .hl-phrase {
+    text-transform: uppercase;
+  }
+  :root[data-style="brutalist"] .hl-phrase.active {
+    color: var(--accent);
+  }
+</style>
+
+<script>
+  // Line-by-line highlight scroll observer
+  const section = document.getElementById('scrollHlSection');
+  const phrases = document.querySelectorAll('.hl-phrase');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (section && phrases.length && !reduce) {
+    let ticking = false;
+
+    function checkHighlight() {
+      const vh = window.innerHeight;
+      const centerLine = vh / 2;
+
+      phrases.forEach(phrase => {
+        const r = phrase.getBoundingClientRect();
+        const phraseCenter = r.top + r.height / 2;
+        
+        // Define active window: when the center of the phrase is within 25% of the viewport center
+        const activeOffset = vh * 0.22;
+        const dist = Math.abs(phraseCenter - centerLine);
+
+        if (dist < activeOffset) {
+          phrase.classList.add('active');
+        } else {
+          phrase.classList.remove('active');
+        }
+      });
+
+      ticking = false;
+    }
+
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(checkHighlight);
+        ticking = true;
+      }
+    }, { passive: true });
+
+    // Initial check
+    setTimeout(checkHighlight, 100);
+  } else if (reduce) {
+    // If user prefers reduced motion, highlight all phrases immediately
+    phrases.forEach(p => p.classList.add('active'));
+  }
+</script>

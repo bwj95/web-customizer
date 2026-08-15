@@ -1,0 +1,213 @@
+---
+// FlameWrap: Renders an organic WebGL/Canvas energy flame border behind an element.
+// Spawns glowing, floating particles along the boundary of the card that rise up
+// and fade out. Adapts colors based on the active data-style mode.
+---
+<div class="flame-wrap-container" id="flameWrap">
+  <canvas class="flame-canvas" id="flameCanvas" aria-hidden="true"></canvas>
+  <div class="flame-content">
+    <slot />
+  </div>
+</div>
+
+<style>
+  .flame-wrap-container {
+    position: relative;
+    width: 100%;
+    margin-top: 3.5rem;
+    border-radius: var(--radius);
+  }
+
+  .flame-canvas {
+    position: absolute;
+    top: -25px;
+    left: -25px;
+    width: calc(100% + 50px);
+    height: calc(100% + 50px);
+    pointer-events: none;
+    z-index: 0;
+    mix-blend-mode: screen;
+  }
+
+  .flame-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+  }
+</style>
+
+<script>
+  const container = document.getElementById('flameWrap');
+  const canvas = document.getElementById('flameCanvas') as HTMLCanvasElement | null;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (container && canvas && !reduce) {
+    const ctx = canvas.getContext('2d')!;
+    let w = 0, h = 0;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    // Particles array
+    interface Particle {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
+      alpha: number;
+      life: number;
+      maxLife: number;
+      edge: 'top' | 'bottom' | 'left' | 'right';
+    }
+
+    let ps: Particle[] = [];
+    
+    // Configs
+    const padding = 25; // padding on each side of the canvas
+    const spawnRate = 2.5; // particles per frame
+
+    function resize() {
+      const rect = container!.getBoundingClientRect();
+      w = rect.width + padding * 2;
+      h = rect.height + padding * 2;
+
+      canvas!.width = w * dpr;
+      canvas!.height = h * dpr;
+      canvas!.style.width = w + 'px';
+      canvas!.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    // Retrieve active flame color based on current vibe style
+    function getFlameColor(style: string) {
+      switch (style) {
+        case 'brutalist':
+          return { r: 0, g: 0, b: 255 }; // Electric Blue
+        case 'editorial':
+          return { r: 201, g: 90, b: 73 }; // Sepia Terracotta
+        case 'neon':
+          return { r: 255, g: 110, b: 199 }; // Neon Pink
+        case 'bento':
+          return { r: 255, g: 94, b: 98 }; // Sunset Orange/Red
+        case 'cyber':
+          return { r: 0, g: 255, b: 159 }; // Matrix Green
+        case 'aurora':
+        case 'kinetic':
+        default:
+          return { r: 25, g: 255, b: 151 }; // #19ff97 Neon Mint Green (as requested)
+      }
+    }
+
+    function spawnParticle() {
+      const style = document.documentElement.getAttribute('data-style') || 'aurora';
+      const cWidth = w - padding * 2;
+      const cHeight = h - padding * 2;
+
+      // Randomly pick an edge to spawn along
+      const edges: ('top' | 'bottom' | 'left' | 'right')[] = ['top', 'bottom', 'left', 'right'];
+      const edge = edges[Math.floor(Math.random() * edges.length)];
+
+      let x = 0, y = 0;
+      let vx = 0, vy = 0;
+
+      // Spawn relative to the padded bounds
+      if (edge === 'top') {
+        x = padding + Math.random() * cWidth;
+        y = padding;
+        vx = (Math.random() - 0.5) * 0.4;
+        vy = -Math.random() * 0.6 - 0.3; // drift up
+      } else if (edge === 'bottom') {
+        x = padding + Math.random() * cWidth;
+        y = padding + cHeight;
+        vx = (Math.random() - 0.5) * 0.4;
+        vy = -Math.random() * 0.5 - 0.2; // float up behind card
+      } else if (edge === 'left') {
+        x = padding;
+        y = padding + Math.random() * cHeight;
+        vx = -Math.random() * 0.4 - 0.1; // drift left
+        vy = -Math.random() * 0.5 - 0.2; // drift up
+      } else if (edge === 'right') {
+        x = padding + cWidth;
+        y = padding + Math.random() * cHeight;
+        vx = Math.random() * 0.4 + 0.1; // drift right
+        vy = -Math.random() * 0.5 - 0.2; // drift up
+      }
+
+      ps.push({
+        x,
+        y,
+        vx,
+        vy,
+        size: Math.random() * 12 + 6, // soft glowing radius
+        alpha: 1,
+        life: 0,
+        maxLife: Math.random() * 25 + 20, // lifetime frames
+        edge
+      });
+    }
+
+    function animate() {
+      const style = document.documentElement.getAttribute('data-style') || 'aurora';
+      const rgb = getFlameColor(style);
+
+      ctx.clearRect(0, 0, w, h);
+      ctx.globalCompositeOperation = 'screen';
+
+      // Spawn particles
+      for (let i = 0; i < spawnRate; i++) {
+        if (Math.random() < 0.8) spawnParticle();
+      }
+
+      // Update & Draw particles
+      for (let i = ps.length - 1; i >= 0; i--) {
+        const p = ps[i];
+        p.life++;
+
+        if (p.life >= p.maxLife) {
+          ps.splice(i, 1);
+          continue;
+        }
+
+        // Apply physics
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // Add wavy noise
+        p.x += Math.sin(p.life * 0.15) * 0.35;
+
+        // Shrink and fade
+        const progress = p.life / p.maxLife;
+        p.alpha = 1 - progress;
+        p.size *= 0.97;
+
+        // Draw soft glowing bubble
+        if (p.size > 0.1) {
+          const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
+          // Strong core fading to outer halo
+          grad.addColorStop(0, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${p.alpha * 0.45})`);
+          grad.addColorStop(0.3, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${p.alpha * 0.2})`);
+          grad.addColorStop(1, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0)`);
+
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // Observer to track element resize
+    const resizeObserver = new ResizeObserver(() => {
+      resize();
+    });
+    resizeObserver.observe(container);
+
+    window.addEventListener('resize', resize, { passive: true });
+    
+    resize();
+    animate();
+  }
+</script>

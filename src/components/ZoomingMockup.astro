@@ -1,0 +1,419 @@
+---
+// ZoomingMockup: Renders a mock browser window of a live showcase site (Traditions).
+// As you scroll down, a scroll listener tilts it from a 3D perspective to a flat,
+// immersive alignment and scales it up.
+---
+<div class="mockup-section" id="mockupSection">
+  <div class="wrap mockup-container">
+    <p class="eyebrow mockup-eyebrow" data-reveal>INTERACTIVE_SHADOW_RUNNER</p>
+    <h3 class="display mockup-title" data-reveal style="--reveal-delay: 80ms">
+      Built for the screen, calibrated for depth.
+    </h3>
+    
+    <div class="perspective-wrap">
+      <div class="browser-mockup glass" id="zoomingBrowser">
+        <!-- Browser header chrome -->
+        <div class="browser-chrome">
+          <div class="chrome-dots">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="chrome-address">
+            <span class="lock-icon">🔒</span>
+            <span class="url-text">example-studio.com</span>
+          </div>
+          <div class="chrome-actions">
+            <span></span><span></span>
+          </div>
+        </div>
+        
+        <!-- Browser contents (generic website placeholder) -->
+        <div class="browser-content">
+          <div class="mock-site">
+            <!-- Mock Header -->
+            <header class="mock-header">
+              <span class="mock-logo">BESPOKE</span>
+              <div class="mock-nav">
+                <span>Overview</span>
+                <span>Features</span>
+                <span>Pricing</span>
+              </div>
+            </header>
+            
+            <!-- Mock Hero -->
+            <div class="mock-hero">
+              <span class="mock-eyebrow">ACTIVE_DESIGN_GRID</span>
+              <h4 class="mock-title">Design engineered for utility.</h4>
+              <p class="mock-lead">High-fidelity layouts, sub-millisecond loading times, and direct CSS token exports. Clean, responsive, performant.</p>
+            </div>
+            
+            <!-- Mock Cards Grid -->
+            <div class="mock-grid">
+              <div class="mock-card">
+                <div class="mock-img-placeholder" style="background: linear-gradient(135deg, #111 0%, #222 100%)">
+                  <span class="mock-glyph">▦</span>
+                </div>
+                <div class="mock-card-body">
+                  <h5>Bespoke Layouts</h5>
+                  <p>Clean modular containers aligned to sub-pixel grids. Zero framework JS overhead.</p>
+                </div>
+              </div>
+              <div class="mock-card">
+                <div class="mock-img-placeholder" style="background: linear-gradient(135deg, #181818 0%, #2a2a2a 100%)">
+                  <span class="mock-glyph">Aa</span>
+                </div>
+                <div class="mock-card-body">
+                  <h5>Variable Typography</h5>
+                  <p>Responsive, scalable type pairings driven dynamically by design tokens.</p>
+                </div>
+              </div>
+              <div class="mock-card">
+                <div class="mock-img-placeholder" style="background: linear-gradient(135deg, #101012 0%, #222228 100%)">
+                  <span class="mock-glyph">✦</span>
+                </div>
+                <div class="mock-card-body">
+                  <h5>Refraction Motion</h5>
+                  <p>Fluid, hardware-accelerated scroll animations that react to interaction speeds.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .mockup-section {
+    padding-block: clamp(4rem, 10vw, 8rem);
+    background: transparent;
+    overflow: hidden;
+  }
+
+  .mockup-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .mockup-eyebrow {
+    margin-bottom: 0.8rem;
+  }
+
+  .mockup-title {
+    font-size: clamp(2rem, 5.5vw, 3.6rem);
+    max-width: 22ch;
+    margin-bottom: clamp(2.5rem, 6vw, 4.5rem);
+    line-height: 1.05;
+  }
+
+  /* Perspective boundary container */
+  .perspective-wrap {
+    perspective: 1200px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding-bottom: 2rem;
+  }
+
+  /* Browser mockup style */
+  .browser-mockup {
+    width: 100%;
+    max-width: 960px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: rgba(14, 14, 18, 0.6);
+    box-shadow: 0 30px 100px rgba(0, 0, 0, 0.7);
+    border: 1px solid var(--border);
+    
+    /* Starting state of 3D transformation, driven by scroll variables */
+    transform-style: preserve-3d;
+    transform: 
+      rotateX(var(--rx, 15deg)) 
+      rotateY(var(--ry, -10deg)) 
+      rotateZ(var(--rz, 2.5deg)) 
+      scale(var(--sc, 0.86));
+    
+    will-change: transform;
+    transition: transform 0.15s cubic-bezier(0.25, 0.8, 0.25, 1);
+  }
+
+  /* WebGL / cyber border accents for neon and cyber */
+  :root[data-style="neon"] .browser-mockup {
+    box-shadow: 0 0 45px var(--accent-soft);
+    border-color: var(--accent);
+  }
+  :root[data-style="cyber"] .browser-mockup {
+    border-color: var(--accent);
+    box-shadow: 0 0 30px rgba(0, 255, 159, 0.15);
+  }
+  :root[data-style="brutalist"] .browser-mockup {
+    border: 2px solid var(--text);
+    border-radius: 0;
+    box-shadow: 8px 8px 0 var(--text);
+    transform: scale(0.92); /* No 3D transform on brutalist */
+    transition: none;
+  }
+
+  /* Browser top address bar area */
+  .browser-chrome {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 40px;
+    padding-inline: 1rem;
+    background: rgba(0, 0, 0, 0.4);
+    border-bottom: 1px solid var(--border);
+  }
+  :root[data-style="brutalist"] .browser-chrome {
+    border-bottom: 2px solid var(--text);
+    background: var(--text-dim);
+  }
+
+  .chrome-dots {
+    display: flex;
+    gap: 6px;
+  }
+  .chrome-dots span {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+  }
+  :root[data-style="brutalist"] .chrome-dots span {
+    background: var(--bg);
+    border-radius: 0;
+  }
+
+  .chrome-address {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    height: 24px;
+    padding-inline: 1.2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text-dim);
+    min-width: 240px;
+    justify-content: center;
+    border: 1px solid var(--border);
+  }
+  :root[data-style="brutalist"] .chrome-address {
+    border: 1px solid var(--text);
+    background: var(--bg);
+    color: var(--text);
+    border-radius: 0;
+  }
+
+  .lock-icon {
+    font-size: 0.6rem;
+    opacity: 0.7;
+  }
+
+  .chrome-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .chrome-actions span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Browser page contents */
+  .browser-content {
+    background: #050507;
+    position: relative;
+    overflow: hidden;
+  }
+  :root[data-style="editorial"] .browser-content {
+    background: #fbf9f4;
+  }
+
+  .mock-site {
+    padding: 1.6rem clamp(1rem, 4vw, 2.5rem);
+    text-align: left;
+    color: #f4f4f6;
+  }
+  :root[data-style="editorial"] .mock-site {
+    color: #2c2a29;
+  }
+
+  .mock-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding-bottom: 0.8rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+  }
+  :root[data-style="editorial"] .mock-header {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    color: #555;
+  }
+
+  .mock-logo {
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--text);
+  }
+  :root[data-style="editorial"] .mock-logo {
+    color: #2c2a29;
+  }
+
+  .mock-nav {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .mock-hero {
+    margin-block: 2.2rem 2rem;
+    max-width: 48ch;
+  }
+
+  .mock-hero .mock-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.22em;
+    color: var(--accent);
+  }
+
+  .mock-title {
+    font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+    line-height: 1.1;
+    margin-top: 0.4rem;
+    font-weight: 700;
+  }
+
+  .mock-lead {
+    color: var(--text-dim);
+    font-size: 0.88rem;
+    line-height: 1.5;
+    margin-top: 0.6rem;
+  }
+
+  .mock-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.2rem;
+  }
+
+  .mock-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+  }
+  :root[data-style="editorial"] .mock-card {
+    background: #f4f0e6;
+    border-color: #e5dfd3;
+    border-radius: 4px;
+  }
+
+  .mock-img-placeholder {
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mock-glyph {
+    font-size: 1.8rem;
+    opacity: 0.35;
+    color: var(--text);
+  }
+
+  .mock-card-body {
+    padding: 0.85rem;
+  }
+
+  .mock-card-body h5 {
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+  }
+
+  .mock-card-body p {
+    font-size: 0.74rem;
+    color: var(--text-dim);
+    line-height: 1.45;
+  }
+</style>
+
+<script>
+  // Dynamic Scroll rotation calculation logic
+  const section = document.getElementById('mockupSection');
+  const browser = document.getElementById('zoomingBrowser');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  if (section && browser && !reduce) {
+    let ticking = false;
+
+    function handleScroll() {
+      // Calculate viewport bounds
+      const rect = section!.getBoundingClientRect();
+      const vh = window.innerHeight;
+      
+      // Calculate how far the mockup is in the viewport from 0 (just entering bottom) to 1 (leaving top)
+      // We target the center of the scroll range
+      const scrollRange = rect.height + vh;
+      const progress = Math.max(0, Math.min(1, (vh - rect.top) / scrollRange));
+      
+      // We want the mockup to straighten up and zoom in as it reaches the middle
+      // Enter (progress = 0 to 0.45) -> rotates and straightens
+      // Center (progress = 0.45 to 0.6) -> completely flat and maximum zoom
+      // Exit (progress = 0.6 to 1.0) -> slightly tilts away
+      
+      let scale = 0.86;
+      let rotX = 15;
+      let rotY = -10;
+      let rotZ = 2.5;
+
+      const style = document.documentElement.getAttribute('data-style');
+      if (style === 'brutalist') {
+        // Brutalist skips the 3D scroll effect to align with hard concrete layout grids
+        browser!.style.setProperty('--rx', '0deg');
+        browser!.style.setProperty('--ry', '0deg');
+        browser!.style.setProperty('--rz', '0deg');
+        browser!.style.setProperty('--sc', '0.94');
+        return;
+      }
+
+      // Linear interpolation mapping progress to transforms
+      // Flat coordinates target: scale 1, rx 0, ry 0, rz 0
+      const centerProgress = Math.max(0, Math.min(1, (progress - 0.15) / 0.35)); // active range
+      
+      scale = 0.86 + (1 - 0.86) * centerProgress;
+      rotX = 15 - (15 - 0) * centerProgress;
+      rotY = -10 - (-10 - 0) * centerProgress;
+      rotZ = 2.5 - (2.5 - 0) * centerProgress;
+
+      browser!.style.setProperty('--rx', `${rotX.toFixed(2)}deg`);
+      browser!.style.setProperty('--ry', `${rotY.toFixed(2)}deg`);
+      browser!.style.setProperty('--rz', `${rotZ.toFixed(2)}deg`);
+      browser!.style.setProperty('--sc', `${scale.toFixed(3)}`);
+
+      ticking = false;
+    }
+
+    window.addEventListener('scroll', () => {
+      if (!ticking) {
+        requestAnimationFrame(handleScroll);
+        ticking = true;
+      }
+    }, { passive: true });
+
+    // Handle initial state
+    setTimeout(handleScroll, 100);
+    
+    // Listen to data-style changes to reset
+    new MutationObserver(handleScroll).observe(document.documentElement, { attributes: true, attributeFilter: ['data-style'] });
+  }
+</script>

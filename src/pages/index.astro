@@ -2,129 +2,385 @@
 import Base from '../layouts/Base.astro';
 import Marquee from '../components/Marquee.astro';
 import ProjectCard from '../components/ProjectCard.astro';
+import InteractiveCore from '../components/InteractiveCore.astro';
+import VibeStudio from '../components/VibeStudio.astro';
+import ZoomingMockup from '../components/ZoomingMockup.astro';
+import ScrollHighlight from '../components/ScrollHighlight.astro';
 import { site, offerings, showcase } from '../data/site';
 import { byKind } from '../data/projects';
 
 const features = byKind('flagship');
+
+// FAQs for design parameters
+const faqs = [
+  {
+    q: 'What typefaces are supported?',
+    a: 'We host a curated selection of self-hosted typefaces, including Satoshi, Sentient, Alpino, Array, Segment, Clash Display, Cabinet Grotesk, and Zodiak. Fonts are compiled locally to prevent external API latency and cumulative layout shifts.'
+  },
+  {
+    q: 'How are layout behaviors calculated?',
+    a: 'Structural modes (grid, horizontal rail, coverflow, list index, bento) are driven dynamically by CSS Grid and Flexbox custom tokens. Swapping variables changes structural alignment live.'
+  },
+  {
+    q: 'Can these variables be exported?',
+    a: 'Yes. The design system outputs standard, portable CSS custom properties. Copy the variables from the console output and paste them into any HTML/CSS framework.'
+  },
+  {
+    q: 'Are the layout rules responsive?',
+    a: 'Yes. Spacing densities, margins, and font sizes are bound to fluid viewport-relative curves using CSS `clamp()`, maintaining proportional typography scales across all viewports.'
+  }
+];
 ---
 <Base>
-  <!-- ============ HERO ============ -->
-  <section class="hero wrap">
-    <p class="eyebrow" data-reveal>{site.role}</p>
-    <h1 class="hero__title font-hero" data-reveal style="--reveal-delay:80ms">
-      Your site, <span class="gradient-text">any style</span>
-      <br class="hero__br" />you can imagine.
-    </h1>
-    <p class="lead hero__lead" data-reveal style="--reveal-delay:160ms">
-      Don't take our word for it — <strong>take the controls.</strong> This whole page is a
-      live demo. Open the Design Console and restyle it — fonts, colors, layout, the entire
-      vibe — in real time. That's the promise: your site, built exactly how you picture it.
-    </p>
-    <div class="hero__cta" data-reveal style="--reveal-delay:240ms">
-      <button class="btn btn-primary" data-open-console>✦ Design this page live</button>
-      <a class="btn btn-ghost" href="#hire">See pricing →</a>
+  <!-- ============ HERO SPLIT (WebGL Telemetry Hero) ============ -->
+  <section class="hero-split wrap">
+    <div class="hero-content">
+      <p class="eyebrow" data-reveal>{site.role}</p>
+      <h1 class="hero__title font-hero" data-reveal style="--reveal-delay:80ms">
+        Your site, <span class="gradient-text">any style</span>
+        <br class="hero__br" />you can imagine.
+      </h1>
+      <p class="lead hero__lead" data-reveal style="--reveal-delay:160ms">
+        An interactive canvas of custom layout patterns, typography curves, and spacing scales. Toggle settings live in the console to inspect design range.
+      </p>
+      <div class="hero__cta" data-reveal style="--reveal-delay:240ms">
+        <a class="btn btn-primary" href="#vibe-studio">✦ Tune the vibe</a>
+        <a class="btn btn-ghost" href="#hire">Design blueprints →</a>
+      </div>
+    </div>
+    
+    <div class="hero-visual" data-reveal style="--reveal-delay:200ms">
+      <InteractiveCore />
     </div>
   </section>
 
   <Marquee items={site.stack} />
 
-  <!-- ============ WHAT YOU CAN CUSTOMIZE ============ -->
-  <section id="work" class="section wrap">
+  <!-- ============ VIBE STUDIO (On-page Customizer) ============ -->
+  <section id="vibe-studio" class="section wrap border-top">
     <header class="sec-head" data-reveal>
-      <p class="eyebrow">01 — Customize</p>
+      <p class="eyebrow">01 — Vibe Studio</p>
+      <h2 class="sec-head__title display">Select a baseline aesthetic.</h2>
+      <p class="lead">Click any card below to completely morph the design tokens of this page—surfaces, accents, corners, and motion. Watch the site adapt instantly.</p>
+    </header>
+    <VibeStudio />
+  </section>
+
+  <!-- ============ PERSPECTIVE SCROLL MOCKUP ============ -->
+  <ZoomingMockup />
+
+  <!-- ============ CAPABILITIES / CAPABILITIES (Bento Grid) ============ -->
+  <section id="work" class="section wrap border-top">
+    <header class="sec-head" data-reveal>
+      <p class="eyebrow">02 — Inside the Engine</p>
       <h2 class="sec-head__title display">Everything is a knob.</h2>
-      <p class="lead">These cards restyle with the site. Open the console and try any of it — this is exactly what you'd get.</p>
+      <p class="lead">These features represent the building blocks we use to compose your site. Toggle parameters in the float console to see how the cards restyle live.</p>
     </header>
     <div class="grid">
       {features.map((p) => <ProjectCard project={p} />)}
     </div>
   </section>
 
-  <!-- ============ PRICING ============ -->
+  <!-- ============ SCROLL-LINKED HIGHLIGHT STATEMENT ============ -->
+  <ScrollHighlight />
+
+  <!-- ============ BLUEPRINTS ============ -->
   <section id="hire" class="section wrap">
     <header class="sec-head" data-reveal>
-      <p class="eyebrow">02 — Pricing</p>
-      <h2 class="sec-head__title display">Ready to make it yours?</h2>
-      <p class="lead">Pick a look, we build it. Straight talk, fast turnaround, and you own everything at the end.</p>
+      <p class="eyebrow">03 — Blueprints</p>
+      <h2 class="sec-head__title display">Ready to export a blueprint?</h2>
+      <p class="lead">Select a configuration spec below to define design tokens, responsive boundaries, and layout parameters.</p>
     </header>
 
     <div class="offer-grid">
       {offerings.map((o) => (
         <article class="offer glass" data-reveal>
-          <div class="offer__top">
+          <div class="offer::top offer-top-row">
             <h3 class="offer__title display">{o.title}</h3>
-            <span class="offer__price">{o.price}</span>
+            <span class="offer__price font-mono">{o.price}</span>
           </div>
           <p class="offer__blurb">{o.blurb}</p>
-          <a class="offer__cta" href={`mailto:${site.email}?subject=${encodeURIComponent(o.cta)}`}>
+          <a class="offer__cta font-mono" href={`mailto:${site.email}?subject=${encodeURIComponent(o.cta)}`}>
             {o.cta} <span aria-hidden="true">→</span>
           </a>
         </article>
       ))}
     </div>
 
-    <div class="contact glass" data-reveal>
-      <div>
-        <h3 class="display contact__h">Have something in mind?</h3>
-        <p class="contact__p">Tell us what you're building — or just play with the console first.</p>
-      </div>
-      <div class="contact__actions">
-        <a class="btn btn-primary" href={`mailto:${site.email}?subject=${encodeURIComponent('Project inquiry')}`}>Get in touch</a>
-        <button class="btn btn-ghost" data-open-console>Open the customizer</button>
+    <!-- ============ FAQ ACCORDIONS ============ -->
+    <div class="faq-container" data-reveal style="--reveal-delay:150ms">
+      <h3 class="faq-title display">Frequently Queried</h3>
+      <div class="faq-list">
+        {faqs.map((faq) => (
+          <details class="faq-item glass">
+            <summary class="faq-question display">
+              {faq.q}
+              <span class="faq-icon" aria-hidden="true">＋</span>
+            </summary>
+            <div class="faq-answer">
+              <p>{faq.a}</p>
+            </div>
+          </details>
+        ))}
       </div>
     </div>
-  </section>
 
-  <!-- ============ EXAMPLES (resource links) ============ -->
-  <section id="examples" class="section wrap">
-    <header class="sec-head" data-reveal>
-      <p class="eyebrow">03 — Examples</p>
-      <h2 class="sec-head__title display">Sites built with this.</h2>
-      <p class="lead">A few live sites using these building blocks. More coming.</p>
-    </header>
-    <div class="links-grid">
-      {showcase.map((s) => (
-        <a class="reslink glass" href={s.href} target="_blank" rel="noopener" data-reveal>
-          <span class="reslink__name display">{s.name}</span>
-          <span class="reslink__note">{s.note}</span>
-          <span class="reslink__go" aria-hidden="true">Visit ↗</span>
-        </a>
-      ))}
+    <!-- Contact Banner -->
+    <div class="contact glass" data-reveal style="--reveal-delay:200ms">
+      <div>
+        <h3 class="display contact__h">Have a layout in mind?</h3>
+        <p class="contact__p">Get in touch to define a custom style guide, or continue testing layout specs in the console.</p>
+      </div>
+      <div class="contact__actions">
+        <a class="btn btn-primary" href={`mailto:${site.email}?subject=${encodeURIComponent('Layout inquiry')}`}>Get in touch</a>
+        <button class="btn btn-ghost" data-open-console>Open control panel</button>
+      </div>
     </div>
   </section>
 </Base>
 
 <style>
-  .hero { padding-top: clamp(1rem, 4vw, 3rem); padding-bottom: clamp(2.5rem, 6vw, 4rem); }
-  .hero__title { font-size: clamp(2.4rem, 7.2vw, 5.4rem); margin-top: 1.2rem; max-width: 16ch; }
-  .hero__lead { margin-top: 1.6rem; }
-  .hero__cta { display: flex; flex-wrap: wrap; gap: 0.9rem; margin-top: 2.2rem; }
-  @media (max-width: 640px) { .hero__br { display: none; } }
+  /* Hero split layout */
+  .hero-split {
+    display: grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap: clamp(2rem, 5vw, 4rem);
+    align-items: center;
+    padding-top: clamp(1rem, 4vw, 3rem);
+    padding-bottom: clamp(2.5rem, 6vw, 4.5rem);
+    min-height: calc(100vh - 4.5rem - 60px);
+  }
 
-  .sec-head { max-width: 60ch; margin-bottom: clamp(2rem, 5vw, 3.2rem); display: flex; flex-direction: column; gap: 0.7rem; }
-  .sec-head__title { font-size: clamp(1.8rem, 4.6vw, 3rem); }
+  .hero-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
 
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.4rem; }
+  .hero__title {
+    font-size: clamp(2.3rem, 6vw, 4.8rem);
+    margin-top: 1.2rem;
+    max-width: 15ch;
+  }
 
-  .offer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.2rem; }
-  .offer { padding: 1.6rem; display: flex; flex-direction: column; gap: 0.9rem; transition: transform 0.3s var(--ease), border-color 0.3s var(--ease); }
-  .offer:hover { transform: translateY(-3px); border-color: var(--border-bright); }
-  .offer__top { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; }
-  .offer__title { font-size: 1.25rem; }
-  .offer__price { font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent); white-space: nowrap; }
-  .offer__blurb { color: var(--text-dim); font-size: 0.92rem; line-height: 1.55; flex: 1; }
-  .offer__cta { font-family: var(--font-mono); font-size: 0.84rem; color: var(--text); }
-  .offer__cta:hover { color: var(--accent); }
+  .hero__lead {
+    margin-top: 1.6rem;
+  }
 
-  .contact { margin-top: 1.4rem; padding: clamp(1.6rem, 4vw, 2.6rem); display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: center; justify-content: space-between; background: var(--spectrum-soft); }
-  .contact__h { font-size: clamp(1.4rem, 3.5vw, 2rem); }
-  .contact__p { color: var(--text-dim); margin-top: 0.4rem; }
-  .contact__actions { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+  .hero__cta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    margin-top: 2.2rem;
+  }
 
-  .links-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
-  .reslink { display: flex; flex-direction: column; gap: 0.35rem; padding: 1.4rem 1.5rem; transition: transform 0.3s var(--ease), border-color 0.3s var(--ease); }
-  .reslink:hover { transform: translateY(-3px); border-color: var(--border-bright); }
-  .reslink__name { font-size: 1.3rem; }
-  .reslink__note { color: var(--text-dim); font-size: 0.9rem; flex: 1; }
-  .reslink__go { font-family: var(--font-mono); font-size: 0.78rem; color: var(--accent); margin-top: 0.5rem; }
+  .hero-visual {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  @media (max-width: 960px) {
+    .hero-split {
+      grid-template-columns: 1fr;
+      gap: 3rem;
+      text-align: center;
+      padding-top: 1.5rem;
+      min-height: auto;
+    }
+    .hero-content {
+      align-items: center;
+    }
+    .hero__title {
+      max-width: 100%;
+    }
+    .hero__cta {
+      justify-content: center;
+    }
+    .hero__br {
+      display: none;
+    }
+  }
+
+  /* Borders & Spacing */
+  .border-top {
+    border-top: 1px solid var(--border);
+  }
+  :root[data-style="brutalist"] .border-top {
+    border-top: 2px solid var(--text);
+  }
+
+  .sec-head {
+    max-width: 62ch;
+    margin-bottom: clamp(2.5rem, 6vw, 4rem);
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+  }
+  .sec-head__title {
+    font-size: clamp(1.8rem, 4.6vw, 3rem);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.4rem;
+  }
+
+  /* Pricing grids */
+  .offer-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.4rem;
+    margin-bottom: 4rem;
+  }
+  .offer {
+    padding: 1.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: transform 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+  }
+  .offer:hover {
+    transform: translateY(-4px);
+    border-color: var(--border-bright);
+  }
+  .offer-top-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .offer__title {
+    font-size: 1.35rem;
+  }
+  .offer__price {
+    font-size: 0.8rem;
+    color: var(--accent);
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+  }
+  .offer__blurb {
+    color: var(--text-dim);
+    font-size: 0.92rem;
+    line-height: 1.55;
+    flex: 1;
+  }
+  .offer__cta {
+    font-size: 0.84rem;
+    color: var(--text);
+    letter-spacing: 0.05em;
+    border-top: 1px solid var(--border);
+    padding-top: 0.8rem;
+    margin-top: 0.5rem;
+  }
+  .offer__cta:hover {
+    color: var(--accent);
+  }
+
+  /* FAQ Accordion Styling */
+  .faq-container {
+    max-width: 780px;
+    margin-inline: auto;
+    margin-block: 4.5rem 2rem;
+    text-align: left;
+  }
+  .faq-title {
+    font-size: 1.8rem;
+    margin-bottom: 1.8rem;
+    text-align: center;
+  }
+  .faq-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+  .faq-item {
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    transition: border-color 0.3s ease;
+  }
+  .faq-item[open] {
+    border-color: var(--border-bright);
+  }
+  .faq-question {
+    padding: 1.1rem 1.4rem;
+    font-size: 0.96rem;
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    user-select: none;
+  }
+  /* Remove default disclosure marker in WebKit/Blink */
+  .faq-question::-webkit-details-marker {
+    display: none;
+  }
+  .faq-icon {
+    font-size: 0.9rem;
+    color: var(--text-dim);
+    transition: transform 0.3s var(--ease);
+  }
+  .faq-item[open] .faq-icon {
+    transform: rotate(45deg);
+    color: var(--accent);
+  }
+  .faq-answer {
+    padding: 0 1.4rem 1.2rem;
+    font-size: 0.88rem;
+    color: var(--text-dim);
+    line-height: 1.55;
+  }
+  
+  /* Brutalist FAQ edits */
+  :root[data-style="brutalist"] .faq-item {
+    border: 2px solid var(--text) !important;
+    border-radius: 0;
+  }
+  :root[data-style="brutalist"] .faq-item[open] {
+    box-shadow: 4px 4px 0 var(--text);
+  }
+  :root[data-style="brutalist"] .faq-question {
+    border-bottom: 2px solid transparent;
+  }
+  :root[data-style="brutalist"] .faq-item[open] .faq-question {
+    border-bottom-color: var(--text);
+  }
+
+  /* Contact overlay banner */
+  .contact {
+    margin-top: 3.5rem;
+    padding: clamp(1.6rem, 4vw, 2.6rem);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--spectrum-soft);
+  }
+  .contact__h {
+    font-size: clamp(1.4rem, 3.5vw, 2rem);
+  }
+  .contact__p {
+    color: var(--text-dim);
+    margin-top: 0.4rem;
+    font-size: 0.94rem;
+  }
+  .contact__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+  }
+
+  :root[data-style="brutalist"] .contact {
+    border: 2px solid var(--text) !important;
+    border-radius: 0 !important;
+    box-shadow: 6px 6px 0 var(--text) !important;
+    background: var(--bg) !important;
+  }
 </style>

@@ -1,0 +1,548 @@
+---
+// Interactive 3D Digital Core. Draws a rotating, responsive wireframe mesh/sphere
+// of connected network nodes. Responds to pointer gravity and clicks.
+// Reads the current data-style to morph its shape, colors, and styling on the fly:
+// - brutalist: draws square particles, thick lines, and no glow
+// - editorial: warm terracotta/charcoal, minimal, slow drift
+// - neon / cyber: glowing neon cyan/pink/lime, coordinate logs
+// - aurora / kinetic: default spectrum-tinted constellation
+// Includes HUD telemetry cards for a true WebGL UI/UX dashboard feel.
+---
+<div class="interactive-core" id="coreContainer">
+  <!-- Canvas for 3D simulation -->
+  <canvas id="coreCanvas" aria-hidden="true"></canvas>
+
+  <!-- HUD Telemetry elements -->
+  <div class="hud-overlay hud-top-left glass" data-reveal style="--reveal-delay: 100ms">
+    <div class="hud-header">
+      <span class="hud-dot pulsing"></span>
+      <span class="hud-title">SYSTEM_TELEMETRY</span>
+    </div>
+    <div class="hud-body">
+      <div class="hud-row"><span class="label">NODE_STATUS:</span><span class="value">ACTIVE</span></div>
+      <div class="hud-row"><span class="label">LATENCY_MS:</span><span class="value" id="hudLatency">0.82</span></div>
+      <div class="hud-row"><span class="label">CALIBRATION:</span><span class="value">VSOP87D</span></div>
+      <div class="hud-row"><span class="label">CORE_INDEX:</span><span class="value">BWJ_CORE_v5</span></div>
+    </div>
+  </div>
+
+  <div class="hud-overlay hud-bottom-right glass" data-reveal style="--reveal-delay: 300ms">
+    <div class="hud-header">
+      <span class="hud-title">COGNITIVE_OVERLAY</span>
+    </div>
+    <div class="hud-body">
+      <div class="hud-row"><span class="label">REFRACTION:</span><span class="value">1.104</span></div>
+      <div class="hud-row"><span class="label">COORD_X:</span><span class="value" id="hudCoordX">0.00</span></div>
+      <div class="hud-row"><span class="label">COORD_Y:</span><span class="value" id="hudCoordY">0.00</span></div>
+      <div class="hud-row"><span class="label">RENDERER:</span><span class="value font-mono" id="hudVibe">AURORA</span></div>
+    </div>
+    <div class="hud-graph">
+      <div class="hud-bar" style="--val: 80%"></div>
+      <div class="hud-bar" style="--val: 45%"></div>
+      <div class="hud-bar" style="--val: 65%"></div>
+      <div class="hud-bar" style="--val: 90%"></div>
+      <div class="hud-bar" style="--val: 30%"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .interactive-core {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 480px;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  #coreCanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    cursor: grab;
+  }
+  #coreCanvas:active {
+    cursor: grabbing;
+  }
+
+  /* HUD Overlays */
+  .hud-overlay {
+    position: absolute;
+    z-index: 2;
+    padding: 0.9rem 1.1rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    width: 200px;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .hud-top-left {
+    top: 1.5rem;
+    left: 1.5rem;
+  }
+
+  .hud-bottom-right {
+    bottom: 1.5rem;
+    right: 1.5rem;
+  }
+
+  .hud-header {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+
+  .hud-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  .pulsing {
+    animation: hud-pulse 1.6s infinite ease-in-out;
+  }
+
+  @keyframes hud-pulse {
+    0%, 100% { opacity: 0.3; transform: scale(0.9); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+
+  .hud-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .hud-row {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .hud-row .label {
+    color: var(--text-dim);
+  }
+
+  .hud-row .value {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  /* Dynamic overlay small bar charts */
+  .hud-graph {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 16px;
+    margin-top: 0.6rem;
+    border-top: 1px dashed var(--border);
+    padding-top: 0.4rem;
+  }
+
+  .hud-bar {
+    flex: 1;
+    background: var(--accent);
+    opacity: 0.4;
+    height: var(--val);
+    border-radius: 1px;
+    transition: height 0.5s ease;
+  }
+
+  /* Style adaptations */
+  :root[data-style="brutalist"] .hud-overlay {
+    border-radius: 0;
+    border: 2px solid var(--text);
+    box-shadow: 4px 4px 0 var(--text);
+    background: var(--bg);
+  }
+  :root[data-style="brutalist"] .hud-header {
+    border-bottom: 2px solid var(--text);
+  }
+  :root[data-style="brutalist"] .hud-graph {
+    border-top: 2px dashed var(--text);
+  }
+
+  :root[data-style="editorial"] .hud-overlay {
+    box-shadow: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: transparent;
+  }
+  :root[data-style="editorial"] .hud-header {
+    color: var(--text-dim);
+  }
+
+  :root[data-style="neon"] .hud-overlay {
+    box-shadow: 0 0 15px var(--accent-soft);
+    border-color: var(--accent);
+  }
+
+  :root[data-style="cyber"] .hud-overlay {
+    border-color: var(--accent);
+    box-shadow: 0 0 10px rgba(0, 255, 159, 0.15);
+  }
+
+  @media (max-width: 640px) {
+    .hud-overlay {
+      display: none; /* Hide HUD widgets on small screens to let the canvas take full width */
+    }
+    .interactive-core {
+      min-height: 320px;
+    }
+  }
+</style>
+
+<script>
+  // 3D Orbital wireframe constellation simulation inside canvas.
+  const canvas = document.getElementById('coreCanvas') as HTMLCanvasElement | null;
+  const container = document.getElementById('coreContainer');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // HUD Elements
+  const hudLatency = document.getElementById('hudLatency');
+  const hudCoordX = document.getElementById('hudCoordX');
+  const hudCoordY = document.getElementById('hudCoordY');
+  const hudVibe = document.getElementById('hudVibe');
+  const hudBars = document.querySelectorAll('.hud-bar');
+
+  if (canvas && container && !reduce) {
+    const ctx = canvas.getContext('2d')!;
+    let w = 0, h = 0;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+
+    // Mouse control
+    const mouse = { x: 0, y: 0, px: 0, py: 0, rx: 0, ry: 0, down: false };
+    
+    // 3D Configuration
+    const fov = 350;
+    let rx = 0.5, ry = 0.5; // Rotations
+    let targetRx = 0.5, targetRy = 0.5;
+    let rotationSpeed = 0.005;
+
+    // Node details
+    interface Node3D {
+      x: number;
+      y: number;
+      z: number;
+      ox: number;
+      oy: number;
+      oz: number;
+      tx: number; // Screen coords
+      ty: number;
+      scale: number;
+    }
+
+    let nodes: Node3D[] = [];
+    const nodeCount = 58;
+    const radius = 160;
+
+    // Build the 3D Sphere of points
+    function init3D() {
+      nodes = [];
+      for (let i = 0; i < nodeCount; i++) {
+        // Uniform distribution using spiral
+        const phi = Math.acos(-1 + (2 * i) / nodeCount);
+        const theta = Math.sqrt(nodeCount * Math.PI) * phi;
+
+        const x = radius * Math.sin(phi) * Math.cos(theta);
+        const y = radius * Math.sin(phi) * Math.sin(theta);
+        const z = radius * Math.cos(phi);
+
+        nodes.push({ x, y, z, ox: x, oy: y, oz: z, tx: 0, ty: 0, scale: 0 });
+      }
+    }
+
+    function resize() {
+      const rect = container!.getBoundingClientRect();
+      w = rect.width;
+      h = rect.height;
+      canvas!.width = w * dpr;
+      canvas!.height = h * dpr;
+      canvas!.style.width = w + 'px';
+      canvas!.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    // Interactive hover gravity
+    function handlePointerMove(e: PointerEvent) {
+      const rect = canvas!.getBoundingClientRect();
+      mouse.x = e.clientX - rect.left - w / 2;
+      mouse.y = e.clientY - rect.top - h / 2;
+
+      // Update telemetry HUD coordinates
+      if (hudCoordX) hudCoordX.textContent = mouse.x.toFixed(0);
+      if (hudCoordY) hudCoordY.textContent = mouse.y.toFixed(0);
+
+      // Rotate sphere on drag, hover nudge on pointermove
+      if (mouse.down) {
+        const dx = e.clientX - mouse.px;
+        const dy = e.clientY - mouse.py;
+        targetRy += dx * 0.006;
+        targetRx -= dy * 0.006;
+      } else {
+        // Hover nudge
+        targetRy += (mouse.x / w) * 0.005;
+        targetRx -= (mouse.y / h) * 0.005;
+      }
+      mouse.px = e.clientX;
+      mouse.py = e.clientY;
+    }
+
+    // Frame loops
+    let lastTime = performance.now();
+    
+    function draw() {
+      // Benchmark latency timer
+      const t0 = performance.now();
+      
+      // Determine Vibe
+      const style = document.documentElement.getAttribute('data-style') || 'aurora';
+      if (hudVibe && hudVibe.textContent !== style.toUpperCase()) {
+        hudVibe.textContent = style.toUpperCase();
+      }
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Update rotations smoothly
+      rx += (targetRx - rx) * 0.08;
+      ry += (targetRy - ry) * 0.08;
+      
+      // Idle rotation
+      targetRy += rotationSpeed;
+      targetRx += rotationSpeed * 0.3;
+
+      // Pre-compute sin/cos for rotation matrices
+      const cosX = Math.cos(rx), sinX = Math.sin(rx);
+      const cosY = Math.cos(ry), sinY = Math.sin(ry);
+
+      // Render grid rings/scaffolds for the WebGL look
+      ctx.strokeStyle = getVibeColor(style, 'grid');
+      ctx.lineWidth = 0.5;
+
+      // Render 3 orbits
+      for (let rIdx = 0; rIdx < 3; rIdx++) {
+        ctx.beginPath();
+        const steps = 60;
+        const oRad = radius * (1 + rIdx * 0.15);
+        for (let s = 0; s <= steps; s++) {
+          const theta = (s / steps) * Math.PI * 2;
+          
+          // Orbital circle on Y-Z plane
+          let x = 0;
+          let y = oRad * Math.sin(theta);
+          let z = oRad * Math.cos(theta);
+
+          // Tilt orbit slightly depending on index
+          if (rIdx === 1) {
+            x = oRad * Math.cos(theta);
+            y = 0;
+          } else if (rIdx === 2) {
+            x = oRad * Math.cos(theta);
+            y = oRad * Math.sin(theta);
+            z = 0;
+          }
+
+          // Rotate 3D
+          // Y rotation
+          let x1 = x * cosY - z * sinY;
+          let z1 = x * sinY + z * cosY;
+          // X rotation
+          let y2 = y * cosX - z1 * sinX;
+          let z2 = y * sinX + z1 * cosX;
+
+          // Projection
+          const scale = fov / (fov + z2);
+          const sx = w / 2 + x1 * scale;
+          const sy = h / 2 + y2 * scale;
+
+          if (s === 0) ctx.moveTo(sx, sy);
+          else ctx.lineTo(sx, sy);
+        }
+        ctx.stroke();
+      }
+
+      // Project all nodes
+      const projected = nodes.map(n => {
+        // Apply interactive mouse gravity deformation (push nodes slightly away/toward cursor in 3D)
+        let x = n.ox;
+        let y = n.oy;
+        let z = n.oz;
+
+        // Calculate rotated coordinates first
+        let x1 = x * cosY - z * sinY;
+        let z1 = x * sinY + z * cosY;
+        let y2 = y * cosX - z1 * sinX;
+        let z2 = y * sinX + z1 * cosX;
+
+        // Projection
+        const scale = fov / (fov + z2);
+        const tx = w / 2 + x1 * scale;
+        const ty = h / 2 + y2 * scale;
+
+        // Gravity pull/push
+        n.tx = tx;
+        n.ty = ty;
+        n.scale = scale;
+        return { tx, ty, z: z2, scale, node: n };
+      });
+
+      // Draw connection lines between nearby nodes
+      ctx.lineWidth = style === 'brutalist' ? 1.5 : 0.6;
+      for (let i = 0; i < projected.length; i++) {
+        for (let j = i + 1; j < projected.length; j++) {
+          const a = projected[i];
+          const b = projected[j];
+          const dx = a.tx - b.tx;
+          const dy = a.ty - b.ty;
+          const dist = Math.hypot(dx, dy);
+
+          // Connect if close enough on screen AND not too deep
+          if (dist < 88 && Math.abs(a.z - b.z) < 140) {
+            const alpha = (1 - dist / 88) * 0.28 * Math.min(a.scale, b.scale);
+            ctx.strokeStyle = getVibeColor(style, 'line', alpha);
+            ctx.beginPath();
+            ctx.moveTo(a.tx, a.ty);
+            ctx.lineTo(b.tx, b.ty);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Draw nodes
+      projected.forEach(p => {
+        const size = Math.max(1, p.scale * (style === 'brutalist' ? 4 : 2.5));
+        ctx.fillStyle = getVibeColor(style, 'node', p.z < 0 ? 0.9 : 0.45);
+        ctx.beginPath();
+        if (style === 'brutalist') {
+          // Brutalist draws squares
+          ctx.rect(p.tx - size/2, p.ty - size/2, size, size);
+        } else {
+          // Others draw circles
+          ctx.arc(p.tx, p.ty, size, 0, Math.PI * 2);
+        }
+        ctx.fill();
+
+        // Neon Noir & Cyber: Draw faint text coordinates near a few frontmost nodes
+        if ((style === 'neon' || style === 'cyber') && p.z < -100 && Math.random() < 0.1) {
+          ctx.fillStyle = getVibeColor(style, 'text', 0.65);
+          ctx.font = '7px var(--font-mono)';
+          ctx.fillText(`[${p.tx.toFixed(0)},${p.ty.toFixed(0)}]`, p.tx + size + 4, p.ty + 2);
+        }
+      });
+
+      // Update benchmark latency display
+      const t1 = performance.now();
+      if (hudLatency && Math.random() < 0.05) {
+        hudLatency.textContent = (t1 - t0).toFixed(2);
+        // Randomize graph heights a bit
+        hudBars.forEach(bar => {
+          (bar as HTMLElement).style.setProperty('--val', Math.round(15 + Math.random() * 85) + '%');
+        });
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    // Helper functions to get vibe colors
+    function getVibeColor(style: string, type: 'node' | 'line' | 'grid' | 'text', alpha = 1): string {
+      switch (style) {
+        case 'brutalist':
+          if (type === 'node') return `rgba(244, 244, 246, ${alpha})`;
+          if (type === 'line') return `rgba(244, 244, 246, ${alpha * 0.5})`;
+          if (type === 'grid') return `rgba(244, 244, 246, ${alpha * 0.15})`;
+          return `rgba(244, 244, 246, ${alpha})`;
+        case 'editorial':
+          // Warm terracotta / sepia tones
+          if (type === 'node') return `rgba(90, 75, 70, ${alpha})`;
+          if (type === 'line') return `rgba(90, 75, 70, ${alpha * 0.35})`;
+          if (type === 'grid') return `rgba(90, 75, 70, ${alpha * 0.12})`;
+          return `rgba(90, 75, 70, ${alpha})`;
+        case 'neon':
+          // Electrifying cyan / purple
+          if (type === 'node') return `rgba(0, 245, 255, ${alpha})`;
+          if (type === 'line') return `rgba(255, 110, 199, ${alpha * 0.6})`;
+          if (type === 'grid') return `rgba(0, 245, 255, ${alpha * 0.12})`;
+          return `rgba(0, 245, 255, ${alpha})`;
+        case 'cyber':
+          // Glowing Matrix Green / Cyan
+          if (type === 'node') return `rgba(0, 255, 159, ${alpha})`;
+          if (type === 'line') return `rgba(0, 255, 159, ${alpha * 0.65})`;
+          if (type === 'grid') return `rgba(0, 245, 255, ${alpha * 0.15})`;
+          return `rgba(0, 255, 159, ${alpha})`;
+        case 'fresh':
+          // Fresh green / teal
+          if (type === 'node') return `rgba(50, 180, 120, ${alpha})`;
+          if (type === 'line') return `rgba(50, 180, 120, ${alpha * 0.45})`;
+          if (type === 'grid') return `rgba(50, 180, 120, ${alpha * 0.1})`;
+          return `rgba(50, 180, 120, ${alpha})`;
+        case 'aurora':
+        case 'kinetic':
+        default:
+          // Spectrum Colors: Purple (167, 139, 250), Cyan (108, 234, 255), Pink (255, 110, 199)
+          if (type === 'node') return `rgba(167, 139, 250, ${alpha})`;
+          if (type === 'line') return `rgba(108, 234, 255, ${alpha * 0.45})`;
+          if (type === 'grid') return `rgba(255, 110, 199, ${alpha * 0.12})`;
+          return `rgba(167, 139, 250, ${alpha})`;
+      }
+    }
+
+    // Set pointer listeners
+    window.addEventListener('resize', resize, { passive: true });
+    
+    // Drag rotation
+    canvas.addEventListener('pointerdown', (e) => {
+      mouse.down = true;
+      mouse.px = e.clientX;
+      mouse.py = e.clientY;
+      canvas.setPointerCapture(e.pointerId);
+    });
+    
+    canvas.addEventListener('pointerup', () => mouse.down = false);
+    canvas.addEventListener('pointercancel', () => mouse.down = false);
+
+    canvas.addEventListener('pointermove', handlePointerMove, { passive: true });
+    
+    // Shove nodes outward on double click
+    canvas.addEventListener('dblclick', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const cx = e.clientX - rect.left - w / 2;
+      const cy = e.clientY - rect.top - h / 2;
+      
+      // Double spin speed briefly
+      rotationSpeed = 0.025;
+      setTimeout(() => { rotationSpeed = 0.005; }, 1000);
+      
+      // Warp node velocities
+      nodes.forEach(n => {
+        n.x += (Math.random() - 0.5) * 80;
+        n.y += (Math.random() - 0.5) * 80;
+        n.z += (Math.random() - 0.5) * 80;
+      });
+      setTimeout(() => {
+        nodes.forEach(n => {
+          n.x = n.ox; n.y = n.oy; n.z = n.oz;
+        });
+      }, 800);
+    });
+
+    resize();
+    init3D();
+    requestAnimationFrame(draw);
+  }
+</script>
