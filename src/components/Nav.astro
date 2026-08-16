@@ -1,5 +1,6 @@
 ---
 import { site } from '../data/site';
+import Btn from './Btn.astro';
 const links = [
   { label: 'Customize', href: '/#work' },
   { label: 'Examples', href: '/#examples' },
@@ -16,7 +17,7 @@ const links = [
     {links.map((l) => <a href={l.href}>{l.label}</a>)}
   </nav>
 
-  <a class="btn btn-primary nav__cta" href="/#hire">Hire me</a>
+  <Btn href="/#hire" class="nav__cta">Hire me</Btn>
 
   <button class="nav__burger" id="navBurger" aria-label="Open menu" aria-expanded="false" aria-controls="navMenu">
     <span class="nav__burger-box" aria-hidden="true"><span class="nav__burger-line"></span></span>
@@ -32,7 +33,7 @@ const links = [
   <nav aria-label="Menu">
     {links.map((l) => <a href={l.href}>{l.label}</a>)}
   </nav>
-  <a class="btn btn-primary nav__menu-cta" href="/#hire">Hire me</a>
+  <Btn href="/#hire" class="nav__menu-cta">Hire me</Btn>
 </div>
 
 <style>
@@ -71,7 +72,7 @@ const links = [
   .nav__links { display: flex; gap: clamp(0.9rem, 2.6vw, 1.7rem); }
   .nav__links a { font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.04em; color: var(--text-dim); transition: color 0.2s; }
   .nav__links a:hover { color: var(--text); }
-  .nav__cta { padding: 0.45rem 1rem; font-size: 0.74rem; }
+  :global(.nav__cta) .btn__face { padding: 0.45rem 1rem; font-size: 0.74rem; }
 
   /* ---- hamburger (hidden until the taskbar can't fit, or in Minimal mode) ---- */
   .nav__burger { display: none; align-items: center; justify-content: center; width: 36px; height: 36px; background: transparent; border: none; color: var(--text); flex: 0 0 auto; }
@@ -127,13 +128,14 @@ const links = [
   .nav__menu nav { display: flex; flex-direction: column; gap: 0.1rem; }
   .nav__menu a { padding: 0.7rem 0.9rem; border-radius: max(6px, calc(var(--radius-sm) - 6px)); color: var(--text-dim); font-family: var(--font-mono); font-size: 0.92rem; transition: color 0.2s, background 0.2s; }
   .nav__menu a:hover { color: var(--text); background: var(--panel-2); }
-  .nav__menu-cta { justify-content: center; margin-top: 0.35rem; }
+  :global(.nav__menu-cta) { justify-content: center; margin-top: 0.35rem; }
+  :global(.nav__menu-cta) .btn__face { width: 100%; justify-content: center; }
 
   /* show the burger when the inline links are hidden */
   @media (max-width: 720px) {
     .nav__links { display: none; }
     .nav__burger { display: inline-flex; }
-    .nav__cta { display: none; } /* Hire me lives in the menu at this size */
+    :global(.nav__cta) { display: none; } /* Hire me lives in the menu at this size */
   }
   /* Minimal taskbar mode hides the links at all widths → burger takes over */
   :root[data-nav="mini"] .nav__links { display: none; }
@@ -148,7 +150,8 @@ const links = [
   }
   :root[data-menu="overlay"] .nav__menu nav { align-items: center; gap: 0.3rem; }
   :root[data-menu="overlay"] .nav__menu a { font-size: clamp(1.6rem, 7vw, 2.6rem); font-family: var(--font-display); }
-  :root[data-menu="overlay"] .nav__menu-cta { margin-top: 1.2rem; padding: 0.9rem 2rem; font-size: 0.9rem; }
+  :root[data-menu="overlay"] :global(.nav__menu-cta) { margin-top: 1.2rem; }
+  :root[data-menu="overlay"] :global(.nav__menu-cta) .btn__face { padding: 0.9rem 2rem; font-size: 0.9rem; }
 
   @media (prefers-reduced-motion: reduce) {
     .nav, .nav__menu, .nav__burger-line, .nav__burger-line::before, .nav__burger-line::after { transition: none; }

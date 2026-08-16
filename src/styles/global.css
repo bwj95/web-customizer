@@ -90,7 +90,12 @@
   font-weight: 501 900; font-style: normal; font-display: swap;
 }
 
-:root {
+/* Every vibe's token block is also matchable as [data-preview="<id>"] on ANY
+   element, not just :root. That's what lets the Style Select menu render a live
+   miniature of each theme from the real palette instead of a hand-copied one —
+   one source of truth for both the page and its previews. Root keeps winning on
+   itself because :root[data-style="x"] (0,2,0) outranks [data-preview="x"] (0,1,0). */
+:root, [data-preview="aurora"] {
   /* type */
   --font-hero: 'Array', 'Satoshi', system-ui, sans-serif; /* dot-matrix — hero headline only */
   --font-display: 'Satoshi', system-ui, sans-serif;
@@ -207,23 +212,232 @@ button { font: inherit; cursor: pointer; }
   -webkit-backdrop-filter: blur(var(--blur));
 }
 
-/* ---- buttons ---- */
+/* =========================================================================
+   BUTTONS — see components/Btn.astro.
+
+   .btn is the hit box and NEVER transforms; .btn__face carries every bit of
+   motion. Moving the element's own box under the cursor is what makes hovers
+   flicker (pointerleave → reset → pointerenter → repeat), so the box stays put
+   and the face does the acting.
+
+   Two independent console knobs compose here:
+     [data-btn]   = the material (extruded / notch / outline / block / glow / link)
+     [data-btnfx] = the behaviour (specular / sweep / press / none)
+   Emphasis (.btn--primary vs .btn--ghost) is orthogonal to both.
+   ========================================================================= */
 .btn {
-  display: inline-flex; align-items: center; gap: 0.55rem;
-  padding: 0.85rem 1.4rem;
-  border-radius: 100px;
-  font-family: var(--font-mono);
-  font-size: 0.82rem; letter-spacing: 0.06em;
-  border: 1px solid var(--border-bright);
+  --sx: 50%; --sy: 0%;              /* pointer position, written by Base.astro */
+  --mx: 0px; --my: 0px;             /* magnet offset, same source */
+  --btn-r: 100px;                   /* face radius; variants override */
+  display: inline-flex; align-items: center;
+  border-radius: var(--btn-r);
   color: var(--text);
-  transition: transform 0.25s var(--ease), border-color 0.25s var(--ease), background 0.25s var(--ease);
-  position: relative; overflow: hidden;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  /* The hit box is a bare wrapper — but when it's a <button> the UA ships
+     background: buttonface (#efefef), a border and padding. The face sits on
+     top with a translucent background, so that grey reads straight through and
+     the label goes light-on-light. Reset it here, not per variant. */
+  appearance: none; -webkit-appearance: none;
+  background: transparent; border: 0; padding: 0;
+  font: inherit; text-align: inherit;
 }
-.btn:hover { transform: translateY(-2px); border-color: transparent; }
-.btn-primary { border-color: transparent; color: #08080a; font-weight: 600; }
-.btn-primary::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--spectrum); }
-.btn-primary:hover { transform: translateY(-2px) scale(1.02); }
-.btn-ghost:hover { background: var(--panel-2); }
+.btn__face {
+  position: relative; isolation: isolate;
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.8rem 1.35rem;
+  border-radius: inherit;
+  border: 1px solid transparent;
+  font-family: var(--font-mono);
+  font-size: 0.82rem; letter-spacing: 0.06em; line-height: 1;
+  transition: transform 0.16s var(--ease), box-shadow 0.16s var(--ease),
+              background 0.22s var(--ease), border-color 0.22s var(--ease),
+              color 0.22s var(--ease), filter 0.16s var(--ease),
+              translate 0.14s var(--ease);
+}
+.btn__face > * { position: relative; z-index: 2; }
+.btn__glyph { transition: translate 0.2s var(--ease); }
+.btn:hover .btn__glyph { translate: 3px 0; }
+/* focus lands on the face so the ring hugs the visible shape */
+.btn:focus-visible { outline: none; }
+.btn:focus-visible .btn__face { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* ---- material: EXTRUDED (default) — a lit lozenge, ported from web-studio ---- */
+.btn--primary .btn__face {
+  color: #0b0a14; font-weight: 600;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0) 52%),
+    var(--spectrum);
+  box-shadow:
+    inset 0 1px 0.5px rgba(255,255,255,0.9),     /* rim light along the top */
+    inset 0 -1.5px 1px rgba(40,20,64,0.45),      /* self-shading underneath */
+    inset 0 0 0 1px rgba(255,255,255,0.16),      /* bevel edge */
+    0 1px 1px rgba(0,0,0,0.45),                  /* contact shadow */
+    0 5px 12px -5px rgba(0,0,0,0.7),             /* cast shadow */
+    0 8px 24px -10px var(--accent);              /* colour bounce */
+}
+.btn--ghost .btn__face {
+  background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01));
+  border-color: var(--border-bright);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 6px -3px rgba(0,0,0,0.6);
+}
+.btn:hover .btn__face { transform: translateY(-1.5px); filter: brightness(1.06); }
+.btn:active .btn__face { transform: translateY(1.5px) scale(0.985); filter: brightness(0.97); transition-duration: 0.06s; }
+.btn--primary:hover .btn__face {
+  box-shadow:
+    inset 0 1px 0.5px rgba(255,255,255,0.95),
+    inset 0 -1.5px 1px rgba(40,20,64,0.45),
+    inset 0 0 0 1px rgba(255,255,255,0.2),
+    0 1px 1px rgba(0,0,0,0.45),
+    0 9px 18px -6px rgba(0,0,0,0.75),
+    0 12px 32px -10px var(--accent);
+}
+.btn--primary:active .btn__face {
+  box-shadow:
+    inset 0 1.5px 2px rgba(40,20,64,0.5),
+    inset 0 1px 0.5px rgba(255,255,255,0.5),
+    0 1px 1px rgba(0,0,0,0.4);
+}
+.btn--ghost:hover .btn__face { background: var(--panel-2); border-color: var(--accent); }
+
+/* ---- material: NOTCHED — the game-menu cut corner ---- */
+:root[data-btn="notch"] .btn { --btn-r: 0px; }
+:root[data-btn="notch"] .btn__face {
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.74rem;
+  box-shadow: none;
+}
+:root[data-btn="notch"] .btn--primary .btn__face {
+  background: var(--spectrum); color: #0b0a14;
+}
+:root[data-btn="notch"] .btn--ghost .btn__face {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--text);
+  /* clip-path eats a real border, so the edge is drawn as an inset ring */
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+:root[data-btn="notch"] .btn--ghost:hover .btn__face { background: color-mix(in srgb, var(--accent) 28%, transparent); }
+
+/* ---- material: OUTLINE — hairline that fills on hover ---- */
+:root[data-btn="outline"] .btn { --btn-r: var(--radius-sm); }
+:root[data-btn="outline"] .btn__face {
+  background: transparent; box-shadow: none;
+  border-color: var(--border-bright); color: var(--text);
+}
+:root[data-btn="outline"] .btn--primary .btn__face { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+:root[data-btn="outline"] .btn:hover .btn__face { background: var(--accent-soft); border-color: var(--accent); }
+:root[data-btn="outline"] .btn--primary:hover .btn__face { background: var(--accent); color: var(--bg); }
+
+/* ---- material: BLOCK — brutalist slab with a hard offset shadow ---- */
+:root[data-btn="block"] .btn { --btn-r: 0px; }
+:root[data-btn="block"] .btn__face {
+  background: var(--panel-2); color: var(--text);
+  border: 2px solid var(--text); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  box-shadow: 4px 4px 0 var(--text);
+}
+:root[data-btn="block"] .btn--primary .btn__face { background: var(--accent); color: var(--bg); }
+:root[data-btn="block"] .btn:hover .btn__face { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--text); filter: none; }
+/* press drives the slab into its own shadow */
+:root[data-btn="block"] .btn:active .btn__face { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--text); }
+
+/* ---- material: GLOW — neon halo that blooms on hover ---- */
+:root[data-btn="glow"] .btn { --btn-r: 100px; }
+:root[data-btn="glow"] .btn__face {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-color: var(--accent); color: var(--text);
+  box-shadow: 0 0 14px -2px var(--accent), inset 0 0 12px -6px var(--accent);
+  text-shadow: 0 0 12px var(--accent);
+}
+:root[data-btn="glow"] .btn--primary .btn__face { background: color-mix(in srgb, var(--accent) 22%, transparent); font-weight: 600; }
+:root[data-btn="glow"] .btn:hover .btn__face {
+  box-shadow: 0 0 30px -2px var(--accent), 0 0 60px -10px var(--accent), inset 0 0 18px -6px var(--accent);
+}
+
+/* ---- material: TEXT → — no box at all, a rule that sweeps in ---- */
+:root[data-btn="link"] .btn { --btn-r: 0px; }
+:root[data-btn="link"] .btn__face {
+  background: none; border: 0; box-shadow: none; padding: 0.4rem 0;
+  color: var(--text); letter-spacing: 0.04em;
+}
+:root[data-btn="link"] .btn--primary .btn__face { color: var(--accent); font-weight: 600; }
+:root[data-btn="link"] .btn__face::before {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; z-index: 1;
+  background: currentColor; transform: scaleX(0); transform-origin: 0 50%;
+  transition: transform 0.3s var(--ease);
+}
+:root[data-btn="link"] .btn:hover .btn__face::before { transform: scaleX(1); }
+:root[data-btn="link"] .btn:hover .btn__face,
+:root[data-btn="link"] .btn:active .btn__face { transform: none; filter: none; }
+
+/* =========================================================================
+   BUTTON FX — the ::after layer, so behaviour composes with any material.
+   ========================================================================= */
+.btn__face::after {
+  content: ''; position: absolute; inset: 0; z-index: 1;
+  border-radius: inherit; pointer-events: none;
+  opacity: 0; transition: opacity 0.2s var(--ease);
+}
+
+/* SPECULAR (default): a highlight that tracks the pointer. Only custom
+   properties move — never a transform — so the hit box stays put.
+   The engine drops an option's attribute when it equals the default, so
+   "specular is active" is the *absence* of data-btnfx, not a value. */
+:root:not([data-btnfx]) .btn__face::after,
+:root[data-btnfx="specular"] .btn__face::after {
+  background: radial-gradient(38px circle at var(--sx) var(--sy), rgba(255,255,255,0.55), transparent 68%);
+}
+:root:not([data-btnfx]) .btn:hover .btn__face::after,
+:root[data-btnfx="specular"] .btn:hover .btn__face::after { opacity: 1; }
+
+/* Matte materials have no gloss to catch a highlight — a soft white blob on a
+   brutalist slab or a text link just reads as a smudge. */
+:root[data-btn="block"] .btn__face::after,
+:root[data-btn="outline"] .btn__face::after { background: none; }
+
+/* SWEEP: a shine bar crosses the face once per hover */
+:root[data-btnfx="sweep"] .btn__face { overflow: hidden; }
+:root[data-btnfx="sweep"] .btn__face::after {
+  background: linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.5) 50%, transparent 62%);
+  background-size: 260% 100%; background-position: 130% 0;
+  opacity: 1; transition: background-position 0.55s var(--ease);
+}
+:root[data-btnfx="sweep"] .btn:hover .btn__face::after { background-position: -30% 0; }
+
+/* MAGNET: the face is pulled toward the cursor. This is the effect that used to
+   flicker — and it's safe now for one structural reason: the thing being moved
+   (.btn__face) is NOT the thing being hovered (.btn). The hit box holds still,
+   so the pointer can never fall out of it mid-pull. Offsets are clamped so the
+   face can't wander off its own box. */
+:root[data-btnfx="magnet"] .btn__face {
+  translate: var(--mx) var(--my);
+}
+/* let go slowly when the pointer leaves */
+:root[data-btnfx="magnet"] .btn:not(:hover) .btn__face {
+  translate: 0 0;
+  transition-duration: 0.4s;
+}
+:root[data-btnfx="magnet"] .btn__face::after { display: none; }
+
+/* TEXT → has no surface at all, so it takes no overlay of any kind.
+   Placed after sweep so it wins on source order without !important. */
+:root[data-btn="link"] .btn__face::after { display: none; }
+
+/* PRESS: material response only — no overlay */
+:root[data-btnfx="press"] .btn__face::after { display: none; }
+
+/* NONE: hold completely still */
+:root[data-btnfx="none"] .btn__face::after { display: none; }
+:root[data-btnfx="none"] .btn:hover .btn__face,
+:root[data-btnfx="none"] .btn:active .btn__face { transform: none; filter: none; }
+:root[data-btnfx="none"] .btn:hover .btn__glyph { translate: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn__face, .btn__glyph, .btn__face::after { transition: none; }
+  .btn:hover .btn__face, .btn:active .btn__face { transform: none; }
+  .btn:hover .btn__glyph { translate: none; }
+  :root[data-btnfx="magnet"] .btn__face { translate: 0 0; }
+}
 
 /* ---- scroll reveal ---- */
 [data-reveal] {
@@ -239,10 +453,76 @@ button { font: inherit; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
 
 /* thin scrollbar */
+/* =========================================================================
+   SCROLLBARS — a Design Console knob (data-scrollbar). Each variant is
+   declared twice: `:root[…]::-webkit-scrollbar` styles the PAGE's own bar,
+   `:root[…] ::-webkit-scrollbar` (descendant) styles every inner scroller —
+   the rails, the console panel, the Style Select roster. Firefox gets the
+   standard `scrollbar-width` / `scrollbar-color` equivalents.
+   ========================================================================= */
+
+/* ---- THIN (default) — barely-there translucent thumb ---- */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 100px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+
+/* ---- ACCENT — the thumb carries the live spectrum ---- */
+:root[data-scrollbar="accent"]::-webkit-scrollbar-track,
+:root[data-scrollbar="accent"] ::-webkit-scrollbar-track { background: var(--accent-soft); }
+:root[data-scrollbar="accent"]::-webkit-scrollbar-thumb,
+:root[data-scrollbar="accent"] ::-webkit-scrollbar-thumb {
+  background: var(--spectrum); border-radius: 100px;
+  border: 2px solid transparent; background-clip: padding-box;
+}
+:root[data-scrollbar="accent"]::-webkit-scrollbar-thumb:hover,
+:root[data-scrollbar="accent"] ::-webkit-scrollbar-thumb:hover { filter: brightness(1.15); }
+
+/* ---- CHUNKY — wide, solid, unmistakably grabbable ---- */
+:root[data-scrollbar="chunky"]::-webkit-scrollbar,
+:root[data-scrollbar="chunky"] ::-webkit-scrollbar { width: 15px; height: 15px; }
+:root[data-scrollbar="chunky"]::-webkit-scrollbar-track,
+:root[data-scrollbar="chunky"] ::-webkit-scrollbar-track { background: var(--panel-2); }
+:root[data-scrollbar="chunky"]::-webkit-scrollbar-thumb,
+:root[data-scrollbar="chunky"] ::-webkit-scrollbar-thumb {
+  background: var(--text-faint); border-radius: 100px;
+  border: 3px solid transparent; background-clip: padding-box;
+}
+:root[data-scrollbar="chunky"]::-webkit-scrollbar-thumb:hover,
+:root[data-scrollbar="chunky"] ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); background-clip: padding-box; }
+
+/* ---- TRACK — squared-off HUD rail, matches the Style Select chrome ---- */
+:root[data-scrollbar="track"]::-webkit-scrollbar,
+:root[data-scrollbar="track"] ::-webkit-scrollbar { width: 12px; height: 12px; }
+:root[data-scrollbar="track"]::-webkit-scrollbar-track,
+:root[data-scrollbar="track"] ::-webkit-scrollbar-track {
+  background: transparent; box-shadow: inset 0 0 0 1px var(--border);
+}
+:root[data-scrollbar="track"]::-webkit-scrollbar-thumb,
+:root[data-scrollbar="track"] ::-webkit-scrollbar-thumb {
+  background: var(--accent); border-radius: 0;
+  border: 3px solid transparent; background-clip: padding-box;
+}
+:root[data-scrollbar="track"]::-webkit-scrollbar-corner,
+:root[data-scrollbar="track"] ::-webkit-scrollbar-corner { background: transparent; }
+
+/* ---- HIDDEN — scrolling still works, the bar just isn't drawn ---- */
+:root[data-scrollbar="hidden"]::-webkit-scrollbar,
+:root[data-scrollbar="hidden"] ::-webkit-scrollbar { width: 0; height: 0; display: none; }
+
+/* Firefox et al: the standard properties, quarantined so they can't reach
+   Chrome. Modern Chrome supports `scrollbar-width` too, and when it's set to
+   `thin` it OVERRIDES the ::-webkit-scrollbar width — which silently pinned
+   every variant to the same size. This @supports test is true only where the
+   webkit pseudo-element doesn't exist. */
+@supports not selector(::-webkit-scrollbar) {
+  :root { scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.22) transparent; }
+  :root[data-scrollbar="accent"] { scrollbar-color: var(--accent) var(--accent-soft); }
+  :root[data-scrollbar="chunky"] { scrollbar-width: auto; scrollbar-color: var(--text-faint) var(--panel-2); }
+  :root[data-scrollbar="track"] { scrollbar-color: var(--accent) transparent; }
+  :root[data-scrollbar="hidden"] { scrollbar-width: none; }
+}
+
 
 /* =========================================================================
    STYLE MODES — the Design Console flips [data-style] on <html>.
@@ -257,7 +537,7 @@ body, .glass, .card, .btn, .nav, .marquee { transition:
   border-color var(--mode-ease), box-shadow var(--mode-ease); }
 
 /* ---------- BRUTALIST — stark concrete, hard borders, no blur ---------- */
-:root[data-style="brutalist"] {
+:root[data-style="brutalist"], [data-preview="brutalist"] {
   --bg: #e7e4da; --bg-2: #dcd8cc;
   --panel: #f5f3ec; --panel-2: #ffffff;
   --border: #111111; --border-bright: #111111; --blur: 0px;
@@ -277,14 +557,12 @@ body, .glass, .card, .btn, .nav, .marquee { transition:
 }
 :root[data-style="brutalist"] #field { display: none; }
 :root[data-style="brutalist"] .glass { border-width: 2px; box-shadow: 6px 6px 0 #111; }
-:root[data-style="brutalist"] .btn { border-width: 2px; border-radius: 0; box-shadow: 4px 4px 0 #111; }
-:root[data-style="brutalist"] .btn:hover { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 #111; }
 :root[data-style="brutalist"] .nav { border-width: 2px; border-radius: 3px; box-shadow: 5px 5px 0 #111; background: var(--panel); }
 :root[data-style="brutalist"] .card:hover { transform: translate(-3px,-3px); box-shadow: 11px 11px 0 #111; }
 :root[data-style="brutalist"] .display, :root[data-style="brutalist"] .sec-head__title { text-transform: uppercase; letter-spacing: -0.02em; }
 
 /* ---------- EDITORIAL — warm paper, serif, generous air ---------- */
-:root[data-style="editorial"] {
+:root[data-style="editorial"], [data-preview="editorial"] {
   --bg: #f7f4ee; --bg-2: #efece4;
   --panel: rgba(255,255,255,0.55); --panel-2: rgba(255,255,255,0.85);
   --border: rgba(26,23,18,0.14); --border-bright: rgba(26,23,18,0.32); --blur: 6px;
@@ -309,7 +587,7 @@ body, .glass, .card, .btn, .nav, .marquee { transition:
 :root[data-style="editorial"] .eyebrow, :root[data-style="editorial"] .marquee__item { font-family: var(--font-mono); }
 
 /* ---------- NEON NOIR — deep dark, electric glow, LED display ---------- */
-:root[data-style="neon"] {
+:root[data-style="neon"], [data-preview="neon"] {
   --bg: #04040a; --bg-2: #080810;
   --panel: rgba(0,245,255,0.035); --panel-2: rgba(0,245,255,0.07);
   --border: rgba(0,245,255,0.22); --border-bright: rgba(0,245,255,0.5); --blur: 14px;
@@ -336,7 +614,7 @@ body, .glass, .card, .btn, .nav, .marquee { transition:
 :root[data-style="neon"] ::selection { background: rgba(0,245,255,0.4); color: #000; }
 
 /* ---------- BENTO — soft dark, big radius, colourful mosaic grid ---------- */
-:root[data-style="bento"] {
+:root[data-style="bento"], [data-preview="bento"] {
   --bg: #0c0d12; --bg-2: #12131a;
   --panel: rgba(255,255,255,0.04); --panel-2: rgba(255,255,255,0.07);
   --border: rgba(255,255,255,0.08); --border-bright: rgba(255,255,255,0.16); --blur: 20px;
@@ -362,7 +640,7 @@ body, .glass, .card, .btn, .nav, .marquee { transition:
 :root[data-style="bento"] .card { background: var(--panel-2); }
 
 /* ---------- KINETIC — bold, everything in motion ---------- */
-:root[data-style="kinetic"] {
+:root[data-style="kinetic"], [data-preview="kinetic"] {
   --bg: #08070f; --bg-2: #0d0b16;
   --panel: rgba(255,255,255,0.035); --panel-2: rgba(255,255,255,0.06);
   --border: rgba(255,255,255,0.1); --border-bright: rgba(255,255,255,0.2); --blur: 16px;
@@ -391,7 +669,7 @@ body, .glass, .card, .btn, .nav, .marquee { transition:
 @keyframes ws-drift { from { transform: translate3d(0,0,0); } to { transform: translate3d(-3%, 2%, 0); } }
 
 /* ---------- FRESH — bright, open, vibrant (delassus-style) ---------- */
-:root[data-style="fresh"] {
+:root[data-style="fresh"], [data-preview="fresh"] {
   --bg: #f4f7ee; --bg-2: #eaf0df;
   --panel: rgba(255,255,255,0.7); --panel-2: #ffffff;
   --border: rgba(20,40,20,0.12); --border-bright: rgba(20,40,20,0.28); --blur: 8px;
@@ -417,7 +695,7 @@ body, .glass, .card, .btn, .nav, .marquee { transition:
 :root[data-style="fresh"] .card:hover { box-shadow: 0 30px 70px rgba(20,40,20,0.14); }
 
 /* ---------- CYBER — terminal green, grid, glow ---------- */
-:root[data-style="cyber"] {
+:root[data-style="cyber"], [data-preview="cyber"] {
   --bg: #05070a; --bg-2: #0a0e12;
   --panel: rgba(0,255,159,0.04); --panel-2: rgba(0,255,159,0.07);
   --border: rgba(0,255,159,0.18); --border-bright: rgba(0,255,159,0.45); --blur: 12px;
@@ -462,7 +740,7 @@ body, .glass, .card, .btn, .nav, .marquee { transition:
 
 /* -- CORNERS -- */
 :root[data-corners="sharp"] { --radius: 0px; --radius-sm: 0px; }
-:root[data-corners="sharp"] .btn,
+:root[data-corners="sharp"] .btn { --btn-r: 2px; }
 :root[data-corners="sharp"] .nav,
 :root[data-corners="sharp"] .chip,
 :root[data-corners="sharp"] .console__act { border-radius: 2px; }
@@ -572,11 +850,14 @@ body, .glass, .card, .btn, .nav, .marquee { transition:
 :root[data-layout="rail"] .grid {
   display: flex; grid-template-columns: none;
   overflow-x: auto; overflow-y: hidden;
-  scroll-snap-type: x mandatory;
+  /* No CSS scroll-snap here. Snap re-snaps EVERY programmatic scrollLeft write,
+     so it fought the wheel handler and the drag alike (set 151 → yanked back to
+     31), and it made the true extremes unreachable, which broke edge detection.
+     Base.astro settles onto the nearest card itself once the gesture ends. */
   gap: 1.2rem; padding-bottom: 1.2rem;
-  scrollbar-width: thin; cursor: grab;
+  cursor: grab;
 }
-:root[data-layout="rail"] .grid > * { flex: 0 0 clamp(280px, 44vw, 560px); scroll-snap-align: center; }
+:root[data-layout="rail"] .grid > * { flex: 0 0 clamp(280px, 44vw, 560px); }
 :root[data-layout="rail"] .card { position: relative; min-height: min(64vh, 560px); overflow: hidden; }
 :root[data-layout="rail"] .card__poster { position: absolute; inset: 0; aspect-ratio: auto; }
 :root[data-layout="rail"] .card__poster img { width: 100%; height: 100%; object-fit: cover; }
@@ -591,8 +872,7 @@ body, .glass, .card, .btn, .nav, .marquee { transition:
 :root[data-layout="rail"] .card__blurb { color: rgba(255,255,255,0.82); }
 :root[data-layout="rail"] .card__tags li { color: rgba(255,255,255,0.82); border-color: rgba(255,255,255,0.28); }
 :root[data-layout="rail"] .card__link { color: #fff; }
-:root[data-layout="rail"] .grid::-webkit-scrollbar { height: 8px; }
-:root[data-layout="rail"] .grid::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 100px; }
+/* rail scrollbar inherits the [data-scrollbar] knob — no local override */
 
 /* -- WORK LAYOUT: list (editorial index; hover preview follows the cursor) -- */
 :root[data-layout="list"] .grid { display: flex; flex-direction: column; gap: 0; counter-reset: work; }
@@ -634,13 +914,13 @@ body, .glass, .card, .btn, .nav, .marquee { transition:
 /* -- WORK LAYOUT: coverflow (3D perspective carousel) -- */
 :root[data-layout="coverflow"] .grid {
   display: flex; grid-template-columns: none;
-  overflow-x: auto; overflow-y: visible; scroll-snap-type: x mandatory;
+  overflow-x: auto; overflow-y: visible;   /* snap deliberately absent — see rail */
   gap: 1.5rem; padding: 2.5rem clamp(18%, 30vw, 34%);
-  perspective: 1500px; scrollbar-width: none; cursor: grab;
+  perspective: 1500px; cursor: grab;
 }
-:root[data-layout="coverflow"] .grid::-webkit-scrollbar { display: none; }
+/* coverflow scrollbar inherits the [data-scrollbar] knob too */
 :root[data-layout="coverflow"] .card {
-  flex: 0 0 min(62vw, 420px); scroll-snap-align: center;
+  flex: 0 0 min(62vw, 420px);
   transform-style: preserve-3d; will-change: transform, opacity;
   /* transform + opacity are driven by JS (coverflow) for cross-browser support */
 }

@@ -266,14 +266,77 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://bwj95.githu
         rail.addEventListener('pointermove', (e) => {
           if (!down) return;
           const dx = e.clientX - sx;
-          if (!moved && Math.abs(dx) > 6) { moved = true; rail.style.cursor = 'grabbing'; try { rail.setPointerCapture(e.pointerId); } catch {} }
-          if (moved) rail.scrollLeft = sl - dx;
+          if (!moved) {
+            if (Math.abs(dx) <= 6) return;
+            moved = true;
+            rail.style.cursor = 'grabbing';
+            try { rail.setPointerCapture(e.pointerId); } catch {}
+          }
+          rail.scrollLeft = sl - dx;
         });
-        const end = () => { down = false; rail.style.cursor = ''; };
+        const end = () => {
+          if (down && moved) scheduleSettle();
+          down = false; rail.style.cursor = '';
+        };
         rail.addEventListener('pointerup', end);
         rail.addEventListener('pointercancel', end);
         // swallow the click that ends a drag so cards don't navigate mid-swipe
         rail.addEventListener('click', (e) => { if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; } }, true);
+
+        // ---- wheel → horizontal, without ever trapping the page ----
+        // Dragging stays exactly as it was; this just adds the mouse wheel on top.
+        // Three rules keep it from becoming a scroll-jail:
+        //   1. only while a horizontal layout is actually active,
+        //   2. only for predominantly VERTICAL deltas — a trackpad's horizontal
+        //      gesture already pans natively, and consuming it would double it,
+        //   3. at either end we return WITHOUT preventDefault, handing the
+        //      gesture back to the page so it keeps scrolling down normally.
+        const HORIZ = new Set(['rail', 'coverflow']);
+
+        // Settle onto the nearest card once a gesture ends — the job CSS
+        // scroll-snap used to do, but under our control so it can't fight a
+        // scroll in progress or make the extremes unreachable.
+        const settle = () => {
+          if (!HORIZ.has(document.documentElement.getAttribute('data-layout') || '')) return;
+          const max = rail.scrollWidth - rail.clientWidth;
+          if (max <= 0) return;
+          if (rail.scrollLeft <= 2 || rail.scrollLeft >= max - 2) return; // rest at the ends
+          const rr = rail.getBoundingClientRect();
+          const mid = rr.left + rr.width / 2;
+          let nearest = Infinity;
+          rail.querySelectorAll<HTMLElement>('.card').forEach((c) => {
+            const cr = c.getBoundingClientRect();
+            const d = (cr.left + cr.width / 2) - mid;
+            if (Math.abs(d) < Math.abs(nearest)) nearest = d;
+          });
+          if (!isFinite(nearest) || Math.abs(nearest) < 2) return;
+          const target = Math.max(0, Math.min(max, rail.scrollLeft + nearest));
+          rail.scrollTo({
+            left: target,
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+          });
+        };
+
+        let settleTimer: ReturnType<typeof setTimeout>;
+        const scheduleSettle = () => { clearTimeout(settleTimer); settleTimer = setTimeout(settle, 170); };
+
+        rail.addEventListener('wheel', (e: WheelEvent) => {
+          const layout = document.documentElement.getAttribute('data-layout') || 'grid';
+          if (!HORIZ.has(layout)) return;
+          const max = rail.scrollWidth - rail.clientWidth;
+          if (max <= 0) return;
+          if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return; // trackpad pans natively
+
+          // deltaMode 1 = lines (Firefox), 2 = pages
+          const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? rail.clientWidth : 1;
+          const delta = e.deltaY * unit;
+          const EDGE = 2; // px of slack, so a fractional resting position still releases
+          if ((delta < 0 && rail.scrollLeft <= EDGE) || (delta > 0 && rail.scrollLeft >= max - EDGE)) return;
+
+          e.preventDefault();
+          rail.scrollLeft = Math.max(0, Math.min(max, rail.scrollLeft + delta));
+          scheduleSettle();
+        }, { passive: false });
       });
 
       // 3D coverflow — JS-driven (works in every browser). Each card rotates/scales
@@ -306,16 +369,36 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://bwj95.githu
 
       // Effects that only make sense with a real pointer
       if (window.matchMedia('(pointer: fine)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-        // Magnetic buttons — nudge toward the cursor while hovered
-        document.querySelectorAll<HTMLElement>('.btn').forEach((btn) => {
-          btn.addEventListener('pointermove', (e) => {
-            const r = btn.getBoundingClientRect();
-            const mx = e.clientX - (r.left + r.width / 2);
-            const my = e.clientY - (r.top + r.height / 2);
-            btn.style.transform = `translate(${(mx * 0.28).toFixed(1)}px, ${(my * 0.4).toFixed(1)}px)`;
-          });
-          btn.addEventListener('pointerleave', () => { btn.style.transform = ''; });
-        });
+        // Specular highlight that tracks the pointer across any button.
+        // This writes ONLY custom properties — never a transform on the button
+        // itself. The old magnetic version moved the element toward the cursor,
+        // which is a feedback loop: near an edge the box slides out from under
+        // the pointer, fires pointerleave, resets, and flickers. Delegated on
+        // document so buttons rendered later still get it.
+        let lastBtn: HTMLElement | null = null;
+        const clamp = (v: number, m: number) => Math.max(-m, Math.min(m, v));
+        document.addEventListener('pointermove', (e) => {
+          const btn = (e.target as HTMLElement)?.closest?.<HTMLElement>('.btn, .ss__deploy');
+          if (btn !== lastBtn && lastBtn) {
+            lastBtn.style.removeProperty('--mx');
+            lastBtn.style.removeProperty('--my');
+          }
+          lastBtn = btn;
+          if (!btn) return;
+          const r = btn.getBoundingClientRect();
+          btn.style.setProperty('--sx', `${((e.clientX - r.left) / r.width) * 100}%`);
+          btn.style.setProperty('--sy', `${((e.clientY - r.top) / r.height) * 100}%`);
+
+          // Magnet: pull the FACE toward the cursor. The CSS applies this to
+          // .btn__face, never to `btn` itself, so the hit box stays put — that
+          // separation is the whole reason this effect is safe to ship again.
+          if (rootEl.getAttribute('data-btnfx') === 'magnet') {
+            const dx = e.clientX - (r.left + r.width / 2);
+            const dy = e.clientY - (r.top + r.height / 2);
+            btn.style.setProperty('--mx', `${clamp(dx * 0.3, 8).toFixed(1)}px`);
+            btn.style.setProperty('--my', `${clamp(dy * 0.42, 6).toFixed(1)}px`);
+          }
+        }, { passive: true });
 
         // Text scramble on hover (nav links) — hacker reveal
         const CH = '!<>-_\\/[]{}=+*^?#________';

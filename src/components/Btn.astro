@@ -1,0 +1,42 @@
+---
+/**
+ * Btn — every button on the site, in one shape.
+ *
+ * The outer <a>/<button> is the HIT BOX and never transforms. All lift/press
+ * motion lives on the inner .btn__face, so the target can't slide out from
+ * under the cursor mid-hover (that feedback loop is what made the old magnetic
+ * buttons flicker). Ported from web-studio's .openbtn, which learned it first.
+ *
+ * Material comes from <html data-btn>, behaviour from <html data-btnfx> — both
+ * are Design Console knobs, so every button on the page restyles at once.
+ */
+interface Props {
+  href?: string;
+  variant?: 'primary' | 'ghost';
+  glyph?: string;
+  type?: 'button' | 'submit';
+  class?: string;
+  [key: string]: unknown;
+}
+const {
+  href,
+  variant = 'primary',
+  glyph,
+  type = 'button',
+  class: cls = '',
+  ...rest
+} = Astro.props;
+
+const Tag = href ? 'a' : 'button';
+const classes = ['btn', `btn--${variant}`, cls].filter(Boolean).join(' ');
+---
+<Tag
+  class={classes}
+  {...(href ? { href } : { type })}
+  {...rest}
+>
+  <span class="btn__face">
+    <span class="btn__label"><slot /></span>
+    {glyph && <span class="btn__glyph" aria-hidden="true">{glyph}</span>}
+  </span>
+</Tag>

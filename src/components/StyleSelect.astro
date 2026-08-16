@@ -1,0 +1,733 @@
+---
+/**
+ * StyleSelect — the customizer as a game-menu level select.
+ *
+ * Left: the roster (a list of "levels" = vibes). Right: a screen showing a LIVE
+ * miniature of the site rendered in that vibe — not a screenshot. Each panel
+ * carries `data-preview="<id>"`, and global.css exposes every vibe's token block
+ * under that attribute, so the miniature paints itself from the real palette.
+ *
+ * Highlight ≠ commit, exactly like a mission select: arrowing / hovering only
+ * previews. DEPLOY (or Enter, or re-clicking the highlighted row) applies the
+ * vibe to the actual page through the same __wsTheme engine the console uses.
+ */
+import { styles, fonts, accents } from '../data/themes';
+
+// resolve each vibe's loadout to the engine's config shape (labels → indices)
+const cfgs = styles.map((s) => {
+  const lo = s.loadout ?? {};
+  const fi = lo.font ? fonts.findIndex((f) => f.label === lo.font) : -1;
+  const ai = lo.accent ? accents.findIndex((a) => a.label === lo.accent) : -1;
+  return { s: s.id, f: fi < 0 ? null : fi, a: ai < 0 ? null : ai, o: lo.opts ?? {} };
+});
+
+// Paint each panel with the loadout's font + accent as inline custom properties,
+// so the miniature shows exactly what Deploy will apply — not the vibe's bare
+// palette. Inline wins over the [data-preview] block and inherits into .mini.
+const previewVars = styles.map((s) => {
+  const lo = s.loadout ?? {};
+  const f = lo.font ? fonts.find((x) => x.label === lo.font) : null;
+  const a = lo.accent ? accents.find((x) => x.label === lo.accent) : null;
+  const v: string[] = [];
+  if (f) v.push(`--font-hero:${f.hero}`, `--font-display:${f.display}`, `--font-body:${f.body}`);
+  if (a) v.push(`--accent:${a.accent}`, `--spectrum:${a.spectrum}`);
+  return v.join(';');
+});
+
+// the button material each vibe ships with — the miniature renders it, so the
+// preview shows the same buttons Deploy will put on the page
+const miniBtn = styles.map((s) => s.loadout?.opts?.btn ?? 'extruded');
+
+// intel the readout prints for the highlighted row (the rest is measured live)
+const meta = styles.map((s) => ({
+  label: s.label, note: s.note, brief: s.brief,
+  surface: s.surface, intensity: s.intensity,
+}));
+
+// three fake project cards in the miniature — short words so the face reads
+const miniCards = ['Atlas', 'Nomad', 'Signal'];
+---
+
+<section class="ss" id="style-select" aria-label="Style select">
+  <div class="ss__frame" id="ssFrame">
+    <!-- ============ top rail ============ -->
+    <header class="ss__top">
+      <span class="ss__slash" aria-hidden="true"></span>
+      <span class="ss__tag">Style Select</span>
+      <span class="ss__rule" aria-hidden="true"></span>
+      <span class="ss__stat">{styles.length} looks</span>
+      <span class="ss__stat ss__stat--live"><i aria-hidden="true"></i>live preview</span>
+    </header>
+
+    <div class="ss__body">
+      <!-- ============ roster ============ -->
+      <div class="ss__rosterwrap">
+        <ul class="ss__roster" id="ssRoster" role="listbox" aria-label="Site style" aria-activedescendant="ss-row-0">
+          {styles.map((s, i) => (
+            <li class="ss__item">
+              <button
+                type="button"
+                class="ss__row"
+                id={`ss-row-${i}`}
+                role="option"
+                aria-selected={i === 0}
+                tabindex={i === 0 ? 0 : -1}
+                data-i={i}
+                data-id={s.id}
+                data-cfg={JSON.stringify(cfgs[i])}
+              >
+                <span class="ss__idx">{String(i + 1).padStart(2, '0')}</span>
+                <span class="ss__rowmain">
+                  <span class="ss__name">{s.label}</span>
+                  <span class="ss__note">{s.note}</span>
+                </span>
+                <span class="ss__live" aria-hidden="true">live</span>
+                <span class="ss__caret" aria-hidden="true">▸</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <!-- ============ screen ============ -->
+      <div class="ss__screen">
+        <div class="ss__stage" id="ssStage">
+          {styles.map((s, i) => (
+            <div class="ss__panel" class:list={[{ 'is-on': i === 0 }]} data-i={i} data-preview={s.id} data-mini-btn={miniBtn[i]} style={previewVars[i]} aria-hidden={i !== 0}>
+              <span class="ss__probe" aria-hidden="true"></span>
+              <div class="mini">
+                <div class="mini__wash" aria-hidden="true"></div>
+                <div class="mini__nav">
+                  <span class="mini__logo">studio</span>
+                  <span class="mini__links" aria-hidden="true"><i></i><i></i><i></i></span>
+                  <span class="mini__pill" aria-hidden="true"></span>
+                </div>
+                <div class="mini__hero">
+                  <span class="mini__eyebrow">{s.note}</span>
+                  <span class="mini__h">Any style<br />you want.</span>
+                  <span class="mini__lead" aria-hidden="true"><i></i><i></i></span>
+                  <span class="mini__btns" aria-hidden="true"><b></b><u></u></span>
+                </div>
+                <div class="mini__cards" aria-hidden="true">
+                  {miniCards.map((c) => (
+                    <div class="mini__card">
+                      <span class="mini__poster"></span>
+                      <span class="mini__ct">{c}</span>
+                      <i></i>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <span class="ss__wipe" id="ssWipe" aria-hidden="true"></span>
+        <span class="ss__scan" aria-hidden="true"></span>
+        <span class="ss__vig" aria-hidden="true"></span>
+        <span class="ss__brk ss__brk--tl" aria-hidden="true"></span>
+        <span class="ss__brk ss__brk--tr" aria-hidden="true"></span>
+        <span class="ss__brk ss__brk--bl" aria-hidden="true"></span>
+        <span class="ss__brk ss__brk--br" aria-hidden="true"></span>
+
+        <!-- overlaid title block, CoD-style -->
+        <div class="ss__title" aria-live="polite">
+          <p class="ss__kicker" id="ssKicker">01 / vibe</p>
+          <h3 class="ss__name-lg" id="ssTitle">{styles[0].label}</h3>
+          <p class="ss__brief" id="ssBrief">{styles[0].brief}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ intel readout ============ -->
+    <div class="ss__intel">
+      <div class="ss__cell"><span class="ss__k">Surface</span><span class="ss__v" id="ssSurface">dark</span></div>
+      <div class="ss__cell"><span class="ss__k">Typeface</span><span class="ss__v" id="ssType">Satoshi</span></div>
+      <div class="ss__cell"><span class="ss__k">Radius</span><span class="ss__v" id="ssRadius">18px</span></div>
+      <div class="ss__cell"><span class="ss__k">Accent</span><span class="ss__v ss__v--sw"><i id="ssSwatch"></i><em id="ssAccent">—</em></span></div>
+      <div class="ss__cell ss__cell--bars">
+        <span class="ss__k">Intensity</span>
+        {/* rendered server-side: Astro scopes styles by build-time attribute, so
+            spans created in JS would come out unstyled. JS only toggles .on. */}
+        <span class="ss__bars" id="ssBars" aria-hidden="true">
+          {[0, 1, 2, 3, 4].map(() => <span></span>)}
+        </span>
+      </div>
+    </div>
+
+    <!-- ============ bottom rail ============ -->
+    <footer class="ss__bottom">
+      <p class="ss__keys" aria-hidden="true">
+        <kbd>↑</kbd><kbd>↓</kbd><span>navigate</span>
+        <kbd>↵</kbd><span>deploy</span>
+      </p>
+      <button type="button" class="ss__deploy" id="ssDeploy">
+        <span class="ss__deploy-txt">Deploy style</span>
+        <span class="ss__deploy-arrow" aria-hidden="true">▸</span>
+      </button>
+    </footer>
+  </div>
+</section>
+
+<style>
+  /* =====================================================================
+     HUD SHELL — deliberately theme-independent. The menu is a screen
+     embedded in the page, so it stays dark on light vibes too; only its
+     accent (--hud-acc) is borrowed from whichever vibe is highlighted.
+     ===================================================================== */
+  .ss {
+    --hud-bg: #06080b;
+    --hud-bg-2: #0b0e13;
+    --hud-line: rgba(255, 255, 255, 0.09);
+    --hud-line-2: rgba(255, 255, 255, 0.2);
+    --hud-txt: #e9edf3;
+    --hud-dim: #79828f;
+    --hud-faint: #4b535e;
+    --hud-acc: #a78bfa;
+    --hud-mono: var(--font-mono);
+    margin-top: 1.5rem;
+  }
+
+  .ss__frame {
+    border: 1px solid var(--hud-line);
+    background: linear-gradient(180deg, var(--hud-bg-2), var(--hud-bg));
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.5);
+    transition: border-color 0.4s var(--ease);
+  }
+  .ss__frame:focus-within { border-color: color-mix(in srgb, var(--hud-acc) 42%, var(--hud-line)); }
+
+  /* ---- top rail ---- */
+  .ss__top {
+    display: flex; align-items: center; gap: 0.85rem;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--hud-line);
+    font-family: var(--hud-mono);
+    font-size: 0.64rem; letter-spacing: 0.22em; text-transform: uppercase;
+  }
+  .ss__slash { width: 3px; height: 13px; background: var(--hud-acc); transform: skewX(-18deg); transition: background 0.4s var(--ease); }
+  .ss__tag { color: var(--hud-txt); }
+  .ss__rule { flex: 1; height: 1px; background: linear-gradient(90deg, var(--hud-line), transparent); }
+  .ss__stat { color: var(--hud-faint); }
+  .ss__stat--live { display: inline-flex; align-items: center; gap: 0.4rem; }
+  .ss__stat--live i { width: 5px; height: 5px; border-radius: 50%; background: var(--hud-acc); box-shadow: 0 0 8px var(--hud-acc); animation: ss-pulse 2.4s ease-in-out infinite; }
+  @keyframes ss-pulse { 50% { opacity: 0.25; } }
+
+  /* ---- layout ---- */
+  .ss__body { display: grid; grid-template-columns: minmax(210px, 285px) 1fr; }
+
+  /* =====================================================================
+     ROSTER
+     ===================================================================== */
+  /* min-width:0 — without it the scrolling roster's content sets a min-content
+     floor on its grid track and blows the whole frame past the viewport */
+  .ss__rosterwrap { min-width: 0; border-right: 1px solid var(--hud-line); background: rgba(0, 0, 0, 0.25); }
+  .ss__roster { list-style: none; margin: 0; padding: 0.5rem 0; }
+  .ss__item + .ss__item { border-top: 1px solid rgba(255, 255, 255, 0.04); }
+
+  .ss__row {
+    position: relative; isolation: isolate;
+    display: flex; align-items: center; gap: 0.7rem;
+    width: 100%; padding: 0.72rem 0.85rem 0.72rem 1rem;
+    background: transparent; border: 0; text-align: left; cursor: pointer;
+    color: var(--hud-dim);
+    transition: color 0.18s, background 0.18s, padding-left 0.24s var(--ease);
+  }
+  /* the sliding accent edge */
+  .ss__row::before {
+    content: ''; position: absolute; inset: 0 auto 0 0; width: 2px;
+    background: var(--hud-acc); transform: scaleY(0); transform-origin: 50% 50%;
+    transition: transform 0.26s var(--ease);
+  }
+  .ss__row:hover { color: var(--hud-txt); background: rgba(255, 255, 255, 0.03); }
+  .ss__row:focus-visible { outline: none; }
+
+  .ss__row[aria-selected='true'] {
+    color: var(--hud-txt);
+    padding-left: 1.3rem;
+    background: linear-gradient(90deg, color-mix(in srgb, var(--hud-acc) 16%, transparent), transparent 78%);
+  }
+  .ss__row[aria-selected='true']::before { transform: scaleY(1); }
+
+  .ss__idx { font-family: var(--hud-mono); font-size: 0.66rem; letter-spacing: 0.1em; color: var(--hud-faint); transition: color 0.18s; }
+  .ss__row[aria-selected='true'] .ss__idx { color: var(--hud-acc); }
+
+  .ss__rowmain { flex: 1; display: flex; flex-direction: column; gap: 0.14rem; min-width: 0; }
+  .ss__name { font-size: 0.9rem; font-weight: 600; letter-spacing: -0.01em; }
+  .ss__note {
+    font-family: var(--hud-mono); font-size: 0.58rem; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--hud-faint);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* "live" tag = the vibe currently applied to the real page */
+  .ss__live {
+    font-family: var(--hud-mono); font-size: 0.5rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--hud-acc); border: 1px solid color-mix(in srgb, var(--hud-acc) 45%, transparent);
+    padding: 0.12rem 0.3rem; opacity: 0; transition: opacity 0.2s;
+  }
+  .ss__row.is-live .ss__live { opacity: 1; }
+
+  .ss__caret { font-size: 0.6rem; color: var(--hud-acc); opacity: 0; transform: translateX(-4px); transition: opacity 0.2s, transform 0.24s var(--ease); }
+  .ss__row[aria-selected='true'] .ss__caret { opacity: 1; transform: translateX(0); }
+  .ss__row.is-live .ss__caret { display: none; }
+
+  /* =====================================================================
+     SCREEN
+     ===================================================================== */
+  .ss__screen { position: relative; min-width: 0; aspect-ratio: 3 / 2; min-height: 320px; overflow: hidden; background: #000; }
+  /* Base type tokens live on the STAGE, not the panel: a panel also carries
+     [data-preview], and a class there would tie with it on specificity and
+     silently beat the vibe's own fonts. On the parent they merely inherit. */
+  .ss__stage {
+    position: absolute; inset: 0;
+    --font-hero: 'Array', 'Satoshi', system-ui, sans-serif;
+    --font-display: 'Satoshi', system-ui, sans-serif;
+    --font-body: 'Satoshi', system-ui, sans-serif;
+  }
+
+  .ss__panel {
+    position: absolute; inset: 0;
+    /* every dimension inside the miniature is expressed in cqw/cqh, so the tiny
+       site scales with the panel instead of the viewport — one layout, any size */
+    container-type: size;
+    opacity: 0; transform: scale(1.035);
+    transition: opacity 0.34s var(--ease), transform 0.6s var(--ease);
+    pointer-events: none;
+  }
+  .ss__panel.is-on { opacity: 1; transform: scale(1); }
+  .ss__probe { color: var(--accent); display: none; } /* JS reads a resolved accent off this */
+
+  /* selection wipe — a light bar sweeps across on every change */
+  .ss__wipe {
+    position: absolute; inset: 0 auto 0 -30%; width: 30%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+    opacity: 0; pointer-events: none;
+  }
+  .ss__wipe.go { animation: ss-wipe 0.5s var(--ease); }
+  @keyframes ss-wipe { 0% { opacity: 1; left: -30%; } 100% { opacity: 0; left: 100%; } }
+
+  .ss__scan {
+    position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+    background: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px);
+    mix-blend-mode: multiply;
+  }
+  .ss__vig { position: absolute; inset: 0; pointer-events: none; box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.55); }
+
+  .ss__brk { position: absolute; width: 14px; height: 14px; pointer-events: none; border-color: var(--hud-acc); transition: border-color 0.4s var(--ease); }
+  .ss__brk--tl { top: 10px; left: 10px; border-top: 1px solid; border-left: 1px solid; }
+  .ss__brk--tr { top: 10px; right: 10px; border-top: 1px solid; border-right: 1px solid; }
+  .ss__brk--bl { bottom: 10px; left: 10px; border-bottom: 1px solid; border-left: 1px solid; }
+  .ss__brk--br { bottom: 10px; right: 10px; border-bottom: 1px solid; border-right: 1px solid; }
+
+  /* overlaid title block */
+  .ss__title {
+    position: absolute; left: 0; right: 0; bottom: 0; z-index: 3;
+    padding: 3.4rem 1.5rem 1.3rem;
+    background: linear-gradient(180deg, transparent, rgba(3, 5, 8, 0.72) 42%, rgba(3, 5, 8, 0.94));
+    pointer-events: none;
+  }
+  .ss__kicker { font-family: var(--hud-mono); font-size: 0.6rem; letter-spacing: 0.24em; text-transform: uppercase; color: var(--hud-acc); }
+  .ss__name-lg {
+    font-family: var(--hud-mono); font-weight: 700;
+    font-size: clamp(1.4rem, 3.2vw, 2.1rem); line-height: 1.05;
+    letter-spacing: -0.02em; text-transform: uppercase; color: #fff;
+    margin-top: 0.35rem;
+  }
+  .ss__brief { margin-top: 0.45rem; max-width: 54ch; font-size: 0.84rem; line-height: 1.5; color: #b3bcc7; }
+
+  /* =====================================================================
+     INTEL READOUT — values are measured off the live panel, not hardcoded
+     ===================================================================== */
+  .ss__intel {
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    border-top: 1px solid var(--hud-line); border-bottom: 1px solid var(--hud-line);
+    background: rgba(0, 0, 0, 0.3);
+  }
+  .ss__cell { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.7rem 1rem; min-width: 0; }
+  .ss__cell + .ss__cell { border-left: 1px solid var(--hud-line); }
+  .ss__k { font-family: var(--hud-mono); font-size: 0.55rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--hud-faint); }
+  .ss__v { font-family: var(--hud-mono); font-size: 0.74rem; color: var(--hud-txt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ss__v--sw { display: flex; align-items: center; gap: 0.4rem; }
+  .ss__v--sw i { width: 11px; height: 11px; border-radius: 50%; background: var(--hud-acc); flex-shrink: 0; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.16); }
+  .ss__v--sw em { font-style: normal; overflow: hidden; text-overflow: ellipsis; }
+
+  .ss__bars { display: flex; gap: 3px; padding-top: 0.15rem; }
+  .ss__bars span { width: 14px; height: 5px; background: rgba(255, 255, 255, 0.12); transform: skewX(-18deg); }
+  .ss__bars span.on { background: var(--hud-acc); }
+
+  /* =====================================================================
+     BOTTOM RAIL
+     ===================================================================== */
+  .ss__bottom { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.7rem 1rem; }
+  .ss__keys { display: flex; align-items: center; gap: 0.4rem; font-family: var(--hud-mono); font-size: 0.6rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--hud-faint); }
+  .ss__keys kbd { display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 3px; border: 1px solid var(--hud-line-2); border-radius: 3px; font: inherit; letter-spacing: 0; color: var(--hud-dim); }
+  .ss__keys span { margin-right: 0.7rem; margin-left: 0.15rem; }
+
+  .ss__deploy {
+    position: relative;
+    display: inline-flex; align-items: center; gap: 0.6rem;
+    padding: 0.6rem 1.1rem;
+    border: 1px solid var(--hud-acc);
+    background: color-mix(in srgb, var(--hud-acc) 14%, transparent);
+    color: #fff; cursor: pointer;
+    font-family: var(--hud-mono); font-size: 0.68rem; letter-spacing: 0.18em; text-transform: uppercase;
+    clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+    transition: background 0.2s, border-color 0.4s var(--ease), color 0.2s;
+  }
+  .ss__deploy:hover { background: color-mix(in srgb, var(--hud-acc) 30%, transparent); }
+  /* same pointer-tracked specular as the page buttons; --sx/--sy come from the
+     delegated handler in Base.astro, and nothing here transforms the hit box */
+  .ss__deploy::after {
+    content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: radial-gradient(46px circle at var(--sx, 50%) var(--sy, 0%), rgba(255,255,255,0.4), transparent 70%);
+    opacity: 0; transition: opacity 0.2s var(--ease);
+  }
+  .ss__deploy:hover::after { opacity: 1; }
+  .ss__deploy > * { position: relative; z-index: 1; }
+  .ss__deploy:active { filter: brightness(0.94); }
+  .ss__deploy-arrow { transition: transform 0.24s var(--ease); }
+  .ss__deploy:hover .ss__deploy-arrow { transform: translateX(3px); }
+  .ss__deploy.is-live { border-color: var(--hud-line-2); background: transparent; color: var(--hud-dim); }
+  .ss__deploy.is-live .ss__deploy-arrow { display: none; }
+
+  /* =====================================================================
+     THE MINIATURE — a tiny website built from the vibe's real tokens
+     ===================================================================== */
+  .mini {
+    position: relative; height: 100%; overflow: hidden;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 0 5cqw;
+    /* the tiny page tops out at 62% of the panel — the rest fades into the
+       title scrim, so it reads as a page continuing past the frame */
+    display: grid; grid-template-rows: auto auto 1fr;
+    /* miniature radii, derived from the vibe's own --radius */
+    --r: clamp(0px, calc(var(--radius) * 0.34), 10px);
+    --r-sm: clamp(0px, calc(var(--radius-sm, var(--radius)) * 0.34), 7px);
+  }
+  .mini__wash { position: absolute; inset: 0; }
+  .mini > :not(.mini__wash) { position: relative; z-index: 1; }
+
+  /* mirrors the real site's floating pill nav rather than a full-width bar */
+  .mini__nav {
+    display: flex; align-items: center; gap: 1.4cqw;
+    width: fit-content; margin: 3cqw auto 0;
+    padding: 1cqw 1.4cqw;
+    border: 1px solid var(--border);
+    border-radius: var(--r-sm);
+    background: var(--panel);
+  }
+  .mini__logo { font-family: var(--font-display); font-size: 1.5cqw; font-weight: 700; letter-spacing: -0.01em; }
+  .mini__links { display: flex; gap: 1.1cqw; padding-inline: 1.4cqw; }
+  .mini__links i { width: 3.4cqw; height: 0.5cqw; border-radius: 1cqw; background: var(--text-dim); opacity: 0.5; }
+  .mini__pill { width: 6cqw; height: 2.2cqw; border-radius: 100px; background: var(--spectrum); }
+
+  .mini__hero { padding-top: 4cqw; }
+  .mini__eyebrow {
+    display: block; font-family: var(--font-mono); font-size: 1.05cqw;
+    letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-dim);
+  }
+  .mini__h {
+    display: block; margin-top: 1.1cqw;
+    font-family: var(--font-hero); font-weight: 700;
+    font-size: 4.6cqw; line-height: 1.04; letter-spacing: -0.02em;
+  }
+  .mini__lead { display: flex; flex-direction: column; gap: 0.7cqw; margin-top: 1.6cqw; }
+  .mini__lead i { height: 0.7cqw; border-radius: 1cqw; background: var(--text-dim); opacity: 0.38; }
+  .mini__lead i:first-child { width: 38%; }
+  .mini__lead i:last-child { width: 26%; }
+  .mini__btns { display: flex; gap: 1cqw; margin-top: 1.8cqw; align-items: center; }
+  .mini__btns b, .mini__btns u { height: 3cqw; border-radius: 100px; }
+  .mini__btns b { width: 9cqw; background: var(--spectrum); }
+  .mini__btns u { width: 7cqw; border: 1px solid var(--border-bright); }
+
+  /* the mini buttons wear the vibe's own button material (data-mini-btn),
+     so the preview matches what Deploy actually applies */
+  [data-mini-btn='extruded'] .mini__btns b {
+    background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0) 52%), var(--spectrum);
+    box-shadow: inset 0 0.12cqw 0 rgba(255,255,255,0.85), 0 0.4cqw 0.8cqw -0.4cqw var(--accent);
+  }
+  [data-mini-btn='notch'] .mini__btns b,
+  [data-mini-btn='notch'] .mini__btns u {
+    border-radius: 0;
+    clip-path: polygon(0.9cqw 0, 100% 0, 100% calc(100% - 0.9cqw), calc(100% - 0.9cqw) 100%, 0 100%, 0 0.9cqw);
+  }
+  [data-mini-btn='notch'] .mini__btns u { border: 0; background: color-mix(in srgb, var(--accent) 28%, transparent); }
+  [data-mini-btn='block'] .mini__btns b,
+  [data-mini-btn='block'] .mini__btns u {
+    border-radius: 0; border: 0.18cqw solid var(--text); box-shadow: 0.35cqw 0.35cqw 0 var(--text);
+  }
+  [data-mini-btn='block'] .mini__btns b { background: var(--accent); }
+  [data-mini-btn='block'] .mini__btns u { background: var(--panel-2); }
+  [data-mini-btn='glow'] .mini__btns b {
+    background: color-mix(in srgb, var(--accent) 24%, transparent);
+    border: 0.1cqw solid var(--accent);
+    box-shadow: 0 0 1.4cqw -0.2cqw var(--accent);
+  }
+  [data-mini-btn='glow'] .mini__btns u { border-color: var(--accent); box-shadow: 0 0 1cqw -0.3cqw var(--accent); }
+  [data-mini-btn='link'] .mini__btns b,
+  [data-mini-btn='link'] .mini__btns u {
+    height: 0.8cqw; border-radius: 0; border: 0; border-bottom: 0.18cqw solid currentColor;
+    background: none;
+  }
+  [data-mini-btn='link'] .mini__btns b { color: var(--accent); width: 7cqw; }
+  [data-mini-btn='link'] .mini__btns u { color: var(--text-dim); width: 5cqw; }
+  [data-mini-btn='outline'] .mini__btns b {
+    background: none; border: 0.1cqw solid var(--accent); border-radius: var(--r-sm);
+  }
+  [data-mini-btn='outline'] .mini__btns u { border-radius: var(--r-sm); }
+
+  .mini__cards {
+    align-self: start;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4cqw;
+    margin-top: 2.6cqw;
+  }
+  .mini__card {
+    border: 1px solid var(--border); border-radius: var(--r);
+    background: var(--panel); padding: 1cqw; overflow: hidden;
+  }
+  .mini__poster { display: block; height: 5.4cqw; border-radius: calc(var(--r) * 0.7); background: var(--spectrum-soft, var(--spectrum)); opacity: 0.9; }
+  .mini__ct { display: block; margin-top: 0.9cqw; font-family: var(--font-display); font-size: 1.25cqw; font-weight: 600; }
+  .mini__card i { display: block; margin-top: 0.6cqw; width: 58%; height: 0.5cqw; border-radius: 1cqw; background: var(--text-dim); opacity: 0.4; }
+
+  /* per-vibe backdrop wash — mirrors what body::before paints on the real page */
+  [data-preview='aurora'] .mini__wash {
+    background:
+      radial-gradient(60% 60% at 12% -8%, rgba(167, 139, 250, 0.16), transparent 60%),
+      radial-gradient(50% 50% at 100% 10%, rgba(108, 234, 255, 0.12), transparent 55%),
+      radial-gradient(60% 60% at 85% 105%, rgba(255, 110, 199, 0.12), transparent 60%);
+  }
+  [data-preview='brutalist'] .mini__wash {
+    background:
+      linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px) 0 0 / 100% 14px,
+      linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px) 0 0 / 14px 100%;
+  }
+  [data-preview='editorial'] .mini__wash {
+    background:
+      radial-gradient(60% 60% at 12% -8%, rgba(178, 84, 47, 0.1), transparent 60%),
+      radial-gradient(50% 50% at 100% 10%, rgba(122, 63, 109, 0.08), transparent 55%);
+  }
+  [data-preview='neon'] .mini__wash {
+    background:
+      radial-gradient(52% 52% at 15% -5%, rgba(0, 245, 255, 0.2), transparent 55%),
+      radial-gradient(50% 50% at 100% 8%, rgba(255, 0, 229, 0.16), transparent 55%),
+      radial-gradient(60% 60% at 82% 106%, rgba(120, 0, 255, 0.18), transparent 60%);
+  }
+  [data-preview='bento'] .mini__wash {
+    background:
+      radial-gradient(50% 50% at 10% -5%, rgba(255, 143, 177, 0.14), transparent 55%),
+      radial-gradient(48% 48% at 100% 10%, rgba(124, 224, 255, 0.12), transparent 55%),
+      radial-gradient(55% 55% at 85% 105%, rgba(255, 184, 107, 0.13), transparent 60%);
+  }
+  [data-preview='kinetic'] .mini__wash {
+    background:
+      radial-gradient(60% 60% at 12% -8%, rgba(167, 139, 250, 0.2), transparent 60%),
+      radial-gradient(50% 50% at 100% 10%, rgba(255, 110, 199, 0.16), transparent 55%);
+  }
+  [data-preview='fresh'] .mini__wash {
+    background:
+      radial-gradient(46% 46% at 8% -2%, rgba(255, 210, 63, 0.4), transparent 55%),
+      radial-gradient(42% 42% at 100% 4%, rgba(62, 196, 109, 0.3), transparent 55%),
+      radial-gradient(52% 52% at 88% 104%, rgba(255, 122, 60, 0.28), transparent 60%);
+  }
+  [data-preview='cyber'] .mini__wash {
+    background:
+      linear-gradient(rgba(0, 255, 159, 0.07) 1px, transparent 1px) 0 0 / 100% 13px,
+      linear-gradient(90deg, rgba(0, 255, 159, 0.07) 1px, transparent 1px) 0 0 / 13px 100%,
+      radial-gradient(60% 60% at 50% -12%, rgba(0, 255, 159, 0.14), transparent 60%);
+  }
+
+  /* signature quirks a flat palette swap would miss */
+  [data-preview='brutalist'] .mini__nav,
+  [data-preview='brutalist'] .mini__card { border-width: 2px; box-shadow: 0.5cqw 0.5cqw 0 #111; }
+  [data-preview='brutalist'] .mini__btns b,
+  [data-preview='brutalist'] .mini__btns u { box-shadow: 0.35cqw 0.35cqw 0 #111; }
+  [data-preview='brutalist'] .mini__btns u { border-width: 2px; }
+  [data-preview='brutalist'] .mini__h,
+  [data-preview='brutalist'] .mini__ct { text-transform: uppercase; }
+  [data-preview='neon'] .mini__h { text-shadow: 0 0 14px rgba(0, 245, 255, 0.6); }
+  [data-preview='neon'] .mini__nav { box-shadow: 0 0 18px rgba(0, 245, 255, 0.2); }
+  [data-preview='cyber'] .mini__h { text-shadow: 0 0 12px rgba(0, 255, 159, 0.55); }
+  [data-preview='cyber'] .mini__nav { box-shadow: 0 0 16px rgba(0, 255, 159, 0.18); }
+  [data-preview='kinetic'] .mini__h {
+    background: var(--spectrum); background-size: 300% 100%;
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    animation: ss-slide 5s linear infinite;
+  }
+  @keyframes ss-slide { to { background-position: 300% 0; } }
+
+  /* =====================================================================
+     RESPONSIVE — under 860px the roster becomes a horizontal chip rail
+     ===================================================================== */
+  @media (max-width: 860px) {
+    .ss__body { grid-template-columns: 1fr; }
+    .ss__rosterwrap { border-right: 0; border-bottom: 1px solid var(--hud-line); }
+    .ss__roster { display: flex; overflow-x: auto; padding: 0.5rem; gap: 0.4rem; scrollbar-width: none; }
+    .ss__roster::-webkit-scrollbar { display: none; }
+    .ss__item + .ss__item { border-top: 0; }
+    .ss__row { width: auto; white-space: nowrap; padding: 0.5rem 0.8rem; border: 1px solid var(--hud-line); }
+    .ss__row[aria-selected='true'] { padding-left: 0.8rem; border-color: var(--hud-acc); }
+    .ss__row::before { inset: auto 0 0 0; width: auto; height: 2px; transform: scaleX(0); }
+    .ss__row[aria-selected='true']::before { transform: scaleX(1); }
+    .ss__note, .ss__caret { display: none; }
+    /* the miniature scales with width (cqw) but the title block is fixed type,
+       so the screen has to get proportionally taller as it gets narrower */
+    .ss__screen { aspect-ratio: 16 / 10; }
+    .ss__intel { grid-template-columns: repeat(2, 1fr); }
+    .ss__cell { border-top: 1px solid var(--hud-line); }
+    .ss__cell:nth-child(odd) { border-left: 0; }
+    .ss__cell--bars { grid-column: span 2; }
+    .ss__keys { display: none; }
+    .ss__bottom { justify-content: stretch; }
+    .ss__deploy { flex: 1; justify-content: center; }
+  }
+
+  @media (max-width: 560px) {
+    .ss__screen { aspect-ratio: 1 / 1; }
+    .ss__title { padding: 2.4rem 1rem 1.1rem; }
+    .ss__cell { padding: 0.6rem 0.8rem; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ss__panel, .ss__row, .ss__caret, .ss__deploy-arrow { transition: none; }
+    .ss__wipe.go, .ss__stat--live i, [data-preview='kinetic'] .mini__h { animation: none; }
+  }
+</style>
+
+<script define:vars={{ META: meta }}>
+  (function () {
+    var frame = document.getElementById('ssFrame');
+    if (!frame) return;
+    var roster = document.getElementById('ssRoster');
+    var rows = Array.prototype.slice.call(roster.querySelectorAll('.ss__row'));
+    var panels = Array.prototype.slice.call(document.querySelectorAll('.ss__panel'));
+    var wipe = document.getElementById('ssWipe');
+    var deploy = document.getElementById('ssDeploy');
+    var el = {
+      kicker: document.getElementById('ssKicker'),
+      title: document.getElementById('ssTitle'),
+      brief: document.getElementById('ssBrief'),
+      surface: document.getElementById('ssSurface'),
+      type: document.getElementById('ssType'),
+      radius: document.getElementById('ssRadius'),
+      swatch: document.getElementById('ssSwatch'),
+      accent: document.getElementById('ssAccent'),
+      bars: document.getElementById('ssBars'),
+    };
+    var cur = 0;
+
+    // rgb(a) → #hex, so the intel readout prints something you can paste
+    function hex(rgb) {
+      var m = (rgb || '').match(/\d+(\.\d+)?/g);
+      if (!m || m.length < 3) return rgb || '—';
+      return '#' + m.slice(0, 3).map(function (n) {
+        return ('0' + Math.round(+n).toString(16)).slice(-2);
+      }).join('').toUpperCase();
+    }
+
+    // read the vibe's real values off the rendered panel instead of duplicating
+    // them in JS — the CSS stays the single source of truth
+    function measure(panel) {
+      var cs = getComputedStyle(panel);
+      var probe = panel.querySelector('.ss__probe');
+      var face = (cs.getPropertyValue('--font-display') || '').split(',')[0].replace(/['"]/g, '').trim();
+      return {
+        face: face || 'Satoshi',
+        radius: (cs.getPropertyValue('--radius') || '').trim() || '—',
+        accent: probe ? getComputedStyle(probe).color : '',
+      };
+    }
+
+    function select(i, opts) {
+      i = (i + rows.length) % rows.length;
+      cur = i;
+      var m = META[i];
+      var panel = panels[i];
+
+      rows.forEach(function (r, n) {
+        r.setAttribute('aria-selected', String(n === i));
+        r.tabIndex = n === i ? 0 : -1;
+      });
+      panels.forEach(function (p, n) {
+        p.classList.toggle('is-on', n === i);
+        p.setAttribute('aria-hidden', String(n !== i));
+      });
+      roster.setAttribute('aria-activedescendant', 'ss-row-' + i);
+
+      var stats = measure(panel);
+      frame.style.setProperty('--hud-acc', stats.accent || '#a78bfa');
+
+      el.kicker.textContent = String(i + 1).padStart(2, '0') + ' / ' + m.note;
+      el.title.textContent = m.label;
+      el.brief.textContent = m.brief;
+      el.surface.textContent = m.surface;
+      el.type.textContent = stats.face;
+      el.radius.textContent = stats.radius;
+      el.accent.textContent = hex(stats.accent);
+      Array.prototype.forEach.call(el.bars.children, function (b, n) {
+        b.classList.toggle('on', n < m.intensity);
+      });
+
+      if (wipe && !(opts && opts.silent)) {
+        wipe.classList.remove('go');
+        void wipe.offsetWidth; // restart the animation
+        wipe.classList.add('go');
+      }
+      syncLive();
+    }
+
+    // which vibe is actually applied to the page right now
+    function syncLive() {
+      var live = document.documentElement.getAttribute('data-style') || 'aurora';
+      rows.forEach(function (r) { r.classList.toggle('is-live', r.dataset.id === live); });
+      var isLive = rows[cur] && rows[cur].dataset.id === live;
+      deploy.classList.toggle('is-live', isLive);
+      deploy.querySelector('.ss__deploy-txt').textContent = isLive ? 'Deployed' : 'Deploy style';
+    }
+
+    function commit(i) {
+      var T = window.__wsTheme;
+      if (!T) return;
+      T.apply(JSON.parse(rows[i].dataset.cfg));
+      syncLive();
+      frame.animate(
+        [{ filter: 'brightness(1.6)' }, { filter: 'brightness(1)' }],
+        { duration: 260, easing: 'ease-out' }
+      );
+    }
+
+    rows.forEach(function (r, i) {
+      // click highlights; clicking the already-highlighted row commits it
+      r.addEventListener('click', function () { (i === cur ? commit : select)(i); });
+      r.addEventListener('dblclick', function () { commit(i); });
+      // hover scrubs the preview without stealing focus — the game-menu feel
+      r.addEventListener('pointerenter', function (e) {
+        if (e.pointerType === 'mouse') select(i);
+      });
+    });
+
+    roster.addEventListener('keydown', function (e) {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') { e.preventDefault(); select(cur + 1); rows[cur].focus(); }
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') { e.preventDefault(); select(cur - 1); rows[cur].focus(); }
+      else if (e.key === 'Home') { e.preventDefault(); select(0); rows[0].focus(); }
+      else if (e.key === 'End') { e.preventDefault(); select(rows.length - 1); rows[cur].focus(); }
+      else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); commit(cur); }
+    });
+
+    deploy.addEventListener('click', function () { commit(cur); });
+
+    // stay in sync when the floating console changes the vibe behind our back
+    new MutationObserver(syncLive).observe(document.documentElement, {
+      attributes: true, attributeFilter: ['data-style'],
+    });
+
+    // start on whatever's already applied
+    var start = rows.findIndex(function (r) {
+      return r.dataset.id === (document.documentElement.getAttribute('data-style') || 'aurora');
+    });
+    select(start < 0 ? 0 : start, { silent: true });
+  })();
+</script>

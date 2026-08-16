@@ -3,7 +3,8 @@ import Base from '../layouts/Base.astro';
 import Marquee from '../components/Marquee.astro';
 import ProjectCard from '../components/ProjectCard.astro';
 import InteractiveCore from '../components/InteractiveCore.astro';
-import VibeStudio from '../components/VibeStudio.astro';
+import StyleSelect from '../components/StyleSelect.astro';
+import Btn from '../components/Btn.astro';
 import ZoomingMockup from '../components/ZoomingMockup.astro';
 import ScrollHighlight from '../components/ScrollHighlight.astro';
 import { site, offerings, showcase } from '../data/site';
@@ -44,8 +45,8 @@ const faqs = [
         An interactive canvas of custom layout patterns, typography curves, and spacing scales. Toggle settings live in the console to inspect design range.
       </p>
       <div class="hero__cta" data-reveal style="--reveal-delay:240ms">
-        <a class="btn btn-primary" href="#vibe-studio">✦ Tune the vibe</a>
-        <a class="btn btn-ghost" href="#hire">Design blueprints →</a>
+        <Btn href="#vibe-studio" glyph="▸">Style select</Btn>
+        <Btn href="#hire" variant="ghost" glyph="→">Design blueprints</Btn>
       </div>
     </div>
     
@@ -56,14 +57,14 @@ const faqs = [
 
   <Marquee items={site.stack} />
 
-  <!-- ============ VIBE STUDIO (On-page Customizer) ============ -->
+  <!-- ============ STYLE SELECT (game-menu customizer) ============ -->
   <section id="vibe-studio" class="section wrap border-top">
     <header class="sec-head" data-reveal>
-      <p class="eyebrow">01 — Vibe Studio</p>
-      <h2 class="sec-head__title display">Select a baseline aesthetic.</h2>
-      <p class="lead">Click any card below to completely morph the design tokens of this page—surfaces, accents, corners, and motion. Watch the site adapt instantly.</p>
+      <p class="eyebrow">01 — Style Select</p>
+      <h2 class="sec-head__title display">Pick your level.</h2>
+      <p class="lead">Every look is a live miniature, not a screenshot. Arrow through the roster to preview one — hit Deploy and the whole page becomes it.</p>
     </header>
-    <VibeStudio />
+    <StyleSelect />
   </section>
 
   <!-- ============ PERSPECTIVE SCROLL MOCKUP ============ -->
@@ -132,8 +133,8 @@ const faqs = [
         <p class="contact__p">Get in touch to define a custom style guide, or continue testing layout specs in the console.</p>
       </div>
       <div class="contact__actions">
-        <a class="btn btn-primary" href={`mailto:${site.email}?subject=${encodeURIComponent('Layout inquiry')}`}>Get in touch</a>
-        <button class="btn btn-ghost" data-open-console>Open control panel</button>
+        <Btn href={`mailto:${site.email}?subject=${encodeURIComponent('Layout inquiry')}`} glyph="→">Get in touch</Btn>
+        <Btn variant="ghost" data-open-console>Open control panel</Btn>
       </div>
     </div>
   </section>

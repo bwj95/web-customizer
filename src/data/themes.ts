@@ -2,7 +2,18 @@
 // console buttons AND injected into the pre-paint theme engine (see Base.astro),
 // so there's no duplication and no flash of the wrong theme on load.
 
-export interface Style { id: string; label: string; note: string; }
+// A style is a "level" in the Style Select menu: an id the CSS reacts to, plus
+// the intel the menu prints (brief, surface, intensity) and the `loadout` —
+// the font/accent/component pairing that ships with it when you deploy it.
+export interface Style {
+  id: string;
+  label: string;
+  note: string;
+  brief: string;
+  surface: 'dark' | 'light';
+  intensity: number; // 1–5, drawn as bars in the intel readout
+  loadout?: { font?: string; accent?: string; opts?: Record<string, string> };
+}
 export interface FontSet { label: string; display: string; body: string; hero: string; }
 export interface Accent { label: string; spectrum: string; accent: string; }
 export interface OptionChoice { val: string; label: string; }
@@ -12,14 +23,47 @@ export interface Option { key: string; attr: string; label: string; default: str
 export interface Preset { name: string; blurb: string; style: string; font: string; accent: string; opts?: Record<string, string>; }
 
 export const styles: Style[] = [
-  { id: 'aurora',    label: 'Aurora Glass', note: 'dark · glass · spectrum' },
-  { id: 'brutalist', label: 'Brutalist',    note: 'concrete · hard edges' },
-  { id: 'editorial', label: 'Editorial',    note: 'paper · serif · calm' },
-  { id: 'neon',      label: 'Neon Noir',    note: 'dark · electric glow' },
-  { id: 'bento',     label: 'Bento',        note: 'soft · rounded mosaic' },
-  { id: 'kinetic',   label: 'Kinetic',      note: 'bold · in motion' },
-  { id: 'fresh',     label: 'Fresh',        note: 'bright · open · vibrant' },
-  { id: 'cyber',     label: 'Cyber',        note: 'terminal green · grid · glow' },
+  {
+    id: 'aurora', label: 'Aurora Glass', note: 'dark · glass · spectrum', surface: 'dark', intensity: 2,
+    brief: 'Frosted panels on near-black, lit by a three-stop spectrum. The house look — quiet until you scroll.',
+    loadout: { font: 'Satoshi', accent: 'Spectrum', opts: { bg: 'particles', cards: 'glass', corners: 'round', btn: 'extruded', btnfx: 'specular', scrollbar: 'thin' } },
+  },
+  {
+    id: 'brutalist', label: 'Brutalist', note: 'concrete · hard edges', surface: 'light', intensity: 5,
+    brief: 'Concrete slab, 2px black borders, hard offset shadows. No blur, no gradients, no apology.',
+    loadout: { font: 'Array', accent: 'Electric', opts: { corners: 'sharp', bg: 'grid', cards: 'solid', btn: 'block', btnfx: 'press', scrollbar: 'chunky' } },
+  },
+  {
+    id: 'editorial', label: 'Editorial', note: 'paper · serif · calm', surface: 'light', intensity: 1,
+    brief: 'Warm paper, serif headlines, generous air. Built to be read, not scanned.',
+    loadout: { font: 'Sentient', accent: 'Gold', opts: { bg: 'none', banner: 'off', cards: 'outline', density: 'spacious', btn: 'link', btnfx: 'press', scrollbar: 'hidden' } },
+  },
+  {
+    id: 'neon', label: 'Neon Noir', note: 'dark · electric glow', surface: 'dark', intensity: 4,
+    brief: 'Deep black, cyan bloom, segmented LED display type. Night-drive energy with a ring cursor.',
+    loadout: { font: 'Segment', accent: 'Spectrum', opts: { hero: 'glow', cursor: 'ring', cards: 'glass', btn: 'glow', btnfx: 'sweep', scrollbar: 'accent' } },
+  },
+  {
+    id: 'bento', label: 'Bento', note: 'soft · rounded mosaic', surface: 'dark', intensity: 2,
+    brief: 'Soft dark mosaic. Oversized radii, warm sunset accents, cards that tile into a grid.',
+    loadout: { font: 'Alpino', accent: 'Sunset', opts: { cards: 'elevated', bg: 'aurora', btn: 'extruded', btnfx: 'specular', scrollbar: 'thin' } },
+  },
+  {
+    id: 'kinetic', label: 'Kinetic', note: 'bold · in motion', surface: 'dark', intensity: 4,
+    brief: 'Everything moves — gradient text slides, the backdrop drifts, hovers land harder.',
+    loadout: { font: 'Clash', accent: 'Spectrum', opts: { bg: 'aurora', cards: 'glass', btn: 'extruded', btnfx: 'sweep', scrollbar: 'accent' } },
+  },
+  {
+    id: 'fresh', label: 'Fresh', note: 'bright · open · vibrant', surface: 'light', intensity: 2,
+    brief: 'Daylight palette, citrus accents, huge breathing room. The friendly end of the range.',
+    loadout: { font: 'Clash', accent: 'Citrus', opts: { density: 'spacious', bg: 'none', cards: 'elevated', btn: 'extruded', btnfx: 'specular', scrollbar: 'thin' } },
+  },
+  {
+    id: 'cyber', label: 'Cyber', note: 'terminal green · grid · glow', surface: 'dark', intensity: 5,
+    brief: 'Terminal green on a wire grid. Scanlines on, dot-matrix type, cursor-lit background.',
+    // no accent override — cyber's own terminal green is the whole point
+    loadout: { font: 'Array', opts: { bg: 'dots', crt: 'on', cards: 'outline', hero: 'glow', btn: 'notch', btnfx: 'sweep', scrollbar: 'track' } },
+  },
 ];
 
 // Component-level design options. Each writes a data-* attribute on <html>;
@@ -43,6 +87,23 @@ export const options: Option[] = [
   ] },
   { key: 'corners', attr: 'data-corners', label: 'Corners', default: 'round', choices: [
     { val: 'round', label: 'Round' }, { val: 'sharp', label: 'Sharp' },
+  ] },
+  // Buttons are two knobs, because material and behaviour are independent:
+  // `btn` is what it's made of, `btnfx` is what it does under the pointer.
+  { key: 'btn', attr: 'data-btn', label: 'Buttons', default: 'extruded', choices: [
+    { val: 'extruded', label: 'Extruded' }, { val: 'notch', label: 'Notched' },
+    { val: 'outline', label: 'Outline' }, { val: 'block', label: 'Block' },
+    { val: 'glow', label: 'Glow' }, { val: 'link', label: 'Text →' },
+  ] },
+  { key: 'btnfx', attr: 'data-btnfx', label: 'Button FX', default: 'specular', choices: [
+    { val: 'specular', label: 'Specular' }, { val: 'sweep', label: 'Sweep' },
+    { val: 'magnet', label: 'Magnet' }, { val: 'press', label: 'Press' },
+    { val: 'none', label: 'None' },
+  ] },
+  { key: 'scrollbar', attr: 'data-scrollbar', label: 'Scrollbar', default: 'thin', choices: [
+    { val: 'thin', label: 'Thin' }, { val: 'accent', label: 'Accent' },
+    { val: 'chunky', label: 'Chunky' }, { val: 'track', label: 'Track' },
+    { val: 'hidden', label: 'Hidden' },
   ] },
   { key: 'bg', attr: 'data-bg', label: 'Background', default: 'particles', choices: [
     { val: 'particles', label: 'Particles' }, { val: 'aurora', label: 'Aurora' },
