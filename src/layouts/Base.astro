@@ -2,6 +2,7 @@
 import '../styles/global.css';
 import ParticleField from '../components/ParticleField.astro';
 import Nav from '../components/Nav.astro';
+import FlameGlobe from '../components/FlameGlobe.astro';
 import ThemeConsole from '../components/ThemeConsole.astro';
 import { site } from '../data/site';
 import { fonts, accents, options } from '../data/themes';
@@ -153,6 +154,13 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://bwj95.githu
         <div>
           <div class="foot__name display">{site.name}</div>
           <p class="foot__tag">{site.tagline}</p>
+          {/* the maker's mark — the one link that LEAVES this site. In the upper
+              footer row, not the base row: the fixed "Design this site" console
+              is pinned to the viewport bottom and covers that row. */}
+          <a class="foot__home" href="https://bwj95.github.io" rel="noopener">
+            <FlameGlobe class="foot__home-mark" />
+            <span>More things built<span class="foot__home-arrow" aria-hidden="true">→</span></span>
+          </a>
         </div>
         <div class="foot__links">
           <a href="/#work">Customize</a>
@@ -428,5 +436,16 @@ const canonical = new URL(Astro.url.pathname, Astro.site ?? 'https://bwj95.githu
   .foot__links { display: flex; flex-wrap: wrap; gap: 1.4rem; font-family: var(--font-mono); font-size: 0.82rem; }
   .foot__links a { color: var(--text-dim); transition: color 0.2s; }
   .foot__links a:hover { color: var(--text); }
+  /* the maker's mark in the footer base row. Colour flows through currentColor
+     into the mark's glass and web, so it re-tints with every vibe. */
+  .foot__home { --mark-size: 32px; display: inline-flex; align-items: center; gap: 0.6rem; margin-top: 1.4rem; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-faint); transition: color 0.2s var(--ease); }
+  .foot__home:hover { color: var(--accent); }
+  /* the arrow travels, not the link's own box — moving the box under the pointer
+     is what makes hovers flicker near an edge */
+  /* gap is a MARGIN, not a leading space inside the span: Astro trims whitespace
+     text nodes around inline elements, so " →" would render as "→". */
+  .foot__home-arrow { display: inline-block; margin-left: 0.5em; transition: translate 0.2s var(--ease); }
+  .foot__home:hover .foot__home-arrow { translate: 3px 0; }
+  @media (prefers-reduced-motion: reduce) { .foot__home, .foot__home-arrow { transition: none; } }
   .foot__base { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; margin-top: 2.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.74rem; color: var(--text-faint); }
 </style>
